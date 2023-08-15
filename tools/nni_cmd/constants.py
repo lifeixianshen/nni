@@ -100,11 +100,11 @@ TUNERS_NO_NEED_TO_IMPORT_DATA = {
     'Hyperband'
 }
 
-COLOR_RED_FORMAT = Fore.RED + '%s'
+COLOR_RED_FORMAT = f'{Fore.RED}%s'
 
-COLOR_GREEN_FORMAT = Fore.GREEN + '%s'
+COLOR_GREEN_FORMAT = f'{Fore.GREEN}%s'
 
-COLOR_YELLOW_FORMAT = Fore.YELLOW + '%s'
+COLOR_YELLOW_FORMAT = f'{Fore.YELLOW}%s'
 
 SCHEMA_TYPE_ERROR = '%s should be %s type!'
 

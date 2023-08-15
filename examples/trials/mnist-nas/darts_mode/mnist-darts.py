@@ -57,8 +57,7 @@ class MnistNetwork(object):
             try:
                 input_dim = int(math.sqrt(self.x_dim))
             except:
-                print(
-                    'input dim cannot be sqrt and reshape. input dim: ' + str(self.x_dim))
+                print(f'input dim cannot be sqrt and reshape. input dim: {str(self.x_dim)}')
                 logger.debug(
                     'input dim cannot be sqrt and reshape. input dim: %s', str(self.x_dim))
                 raise

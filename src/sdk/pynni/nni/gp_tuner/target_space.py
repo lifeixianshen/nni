@@ -181,8 +181,10 @@ class TargetSpace():
             assert set(params) == set(self.keys)
         except AssertionError:
             raise ValueError(
-                "Parameters' keys ({}) do ".format(sorted(params)) +
-                "not match the expected set of keys ({}).".format(self.keys)
+                (
+                    f"Parameters' keys ({sorted(params)}) do "
+                    + f"not match the expected set of keys ({self.keys})."
+                )
             )
         return np.asarray([params[key] for key in self.keys])
 
@@ -205,18 +207,20 @@ class TargetSpace():
             assert len(x) == len(self.keys)
         except AssertionError:
             raise ValueError(
-                "Size of array ({}) is different than the ".format(len(x)) +
-                "expected number of parameters ({}).".format(self.dim)
+                (
+                    f"Size of array ({len(x)}) is different than the "
+                    + f"expected number of parameters ({self.dim})."
+                )
             )
 
         params = {}
         for i, _bound in enumerate(self._bounds):
             if _bound['_type'] == 'choice' and all(isinstance(val, int) for val in _bound['_value']):
-                params.update({self.keys[i]: int(x[i])})
+                params[self.keys[i]] = int(x[i])
             elif _bound['_type'] in ['randint']:
-                params.update({self.keys[i]: int(x[i])})
+                params[self.keys[i]] = int(x[i])
             else:
-                params.update({self.keys[i]:  x[i]})
+                params[self.keys[i]] = x[i]
 
         return params
 
@@ -235,7 +239,7 @@ class TargetSpace():
 
         x = self.params_to_array(params)
         if x in self:
-            print('Data point {} is not unique'.format(x))
+            print(f'Data point {x} is not unique')
 
         # Insert data into unique dictionary
         self._cache[_hashable(x.ravel())] = target

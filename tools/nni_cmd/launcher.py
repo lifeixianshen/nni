@@ -66,9 +66,7 @@ def get_nni_installation_path():
         def _generate_installation_path(sitepackages_path):
             python_dir = get_python_dir(sitepackages_path)
             entry_file = os.path.join(python_dir, 'nni', 'main.js')
-            if os.path.isfile(entry_file):
-                return python_dir
-            return None
+            return python_dir if os.path.isfile(entry_file) else None
 
         for sitepackage in sitepackages:
             python_dir = _generate_installation_path(sitepackage)
@@ -145,22 +143,20 @@ def start_rest_server(port, platform, mode, config_file_name, experiment_id=None
 
 def set_trial_config(experiment_config, port, config_file_name):
     '''set trial configuration'''
-    request_data = dict()
-    request_data['trial_config'] = experiment_config['trial']
+    request_data = {'trial_config': experiment_config['trial']}
     response = rest_put(cluster_metadata_url(port), json.dumps(request_data), REST_TIME_OUT)
     if check_response(response):
         return True
-    else:
-        print('Error message is {}'.format(response.text))
-        _, stderr_full_path = get_log_path(config_file_name)
-        if response:
-            with open(stderr_full_path, 'a+') as fout:
-                fout.write(json.dumps(json.loads(response.text), indent=4, sort_keys=True, separators=(',', ':')))
-        return False
+    print(f'Error message is {response.text}')
+    _, stderr_full_path = get_log_path(config_file_name)
+    if response:
+        with open(stderr_full_path, 'a+') as fout:
+            fout.write(json.dumps(json.loads(response.text), indent=4, sort_keys=True, separators=(',', ':')))
+    return False
 
 def set_local_config(experiment_config, port, config_file_name):
     '''set local configuration'''
-    request_data = dict()
+    request_data = {}
     if experiment_config.get('localConfig'):
         request_data['local_config'] = experiment_config['localConfig']
         if request_data['local_config']:
@@ -185,8 +181,7 @@ def set_local_config(experiment_config, port, config_file_name):
 def set_remote_config(experiment_config, port, config_file_name):
     '''Call setClusterMetadata to pass trial'''
     #set machine_list
-    request_data = dict()
-    request_data['machine_list'] = experiment_config['machineList']
+    request_data = {'machine_list': experiment_config['machineList']}
     if request_data['machine_list']:
         for i in range(len(request_data['machine_list'])):
             if isinstance(request_data['machine_list'][i].get('gpuIndices'), int):
@@ -210,11 +205,12 @@ def setNNIManagerIp(experiment_config, port, config_file_name):
     '''set nniManagerIp'''
     if experiment_config.get('nniManagerIp') is None:
         return True, None
-    ip_config_dict = dict()
-    ip_config_dict['nni_manager_ip'] = {'nniManagerIp': experiment_config['nniManagerIp']}
+    ip_config_dict = {
+        'nni_manager_ip': {'nniManagerIp': experiment_config['nniManagerIp']}
+    }
     response = rest_put(cluster_metadata_url(port), json.dumps(ip_config_dict), REST_TIME_OUT)
     err_message = None
-    if not response or not response.status_code == 200:
+    if not response or response.status_code != 200:
         if response is not None:
             err_message = response.text
             _, stderr_full_path = get_log_path(config_file_name)
@@ -225,11 +221,10 @@ def setNNIManagerIp(experiment_config, port, config_file_name):
 
 def set_pai_config(experiment_config, port, config_file_name):
     '''set pai configuration'''
-    pai_config_data = dict()
-    pai_config_data['pai_config'] = experiment_config['paiConfig']
+    pai_config_data = {'pai_config': experiment_config['paiConfig']}
     response = rest_put(cluster_metadata_url(port), json.dumps(pai_config_data), REST_TIME_OUT)
     err_message = None
-    if not response or not response.status_code == 200:
+    if not response or response.status_code != 200:
         if response is not None:
             err_message = response.text
             _, stderr_full_path = get_log_path(config_file_name)
@@ -244,11 +239,10 @@ def set_pai_config(experiment_config, port, config_file_name):
 
 def set_kubeflow_config(experiment_config, port, config_file_name):
     '''set kubeflow configuration'''
-    kubeflow_config_data = dict()
-    kubeflow_config_data['kubeflow_config'] = experiment_config['kubeflowConfig']
+    kubeflow_config_data = {'kubeflow_config': experiment_config['kubeflowConfig']}
     response = rest_put(cluster_metadata_url(port), json.dumps(kubeflow_config_data), REST_TIME_OUT)
     err_message = None
-    if not response or not response.status_code == 200:
+    if not response or response.status_code != 200:
         if response is not None:
             err_message = response.text
             _, stderr_full_path = get_log_path(config_file_name)
@@ -263,11 +257,14 @@ def set_kubeflow_config(experiment_config, port, config_file_name):
 
 def set_frameworkcontroller_config(experiment_config, port, config_file_name):
     '''set kubeflow configuration'''
-    frameworkcontroller_config_data = dict()
-    frameworkcontroller_config_data['frameworkcontroller_config'] = experiment_config['frameworkcontrollerConfig']
+    frameworkcontroller_config_data = {
+        'frameworkcontroller_config': experiment_config[
+            'frameworkcontrollerConfig'
+        ]
+    }
     response = rest_put(cluster_metadata_url(port), json.dumps(frameworkcontroller_config_data), REST_TIME_OUT)
     err_message = None
-    if not response or not response.status_code == 200:
+    if not response or response.status_code != 200:
         if response is not None:
             err_message = response.text
             _, stderr_full_path = get_log_path(config_file_name)
@@ -282,13 +279,14 @@ def set_frameworkcontroller_config(experiment_config, port, config_file_name):
 
 def set_experiment(experiment_config, mode, port, config_file_name):
     '''Call startExperiment (rest POST /experiment) with yaml file content'''
-    request_data = dict()
-    request_data['authorName'] = experiment_config['authorName']
-    request_data['experimentName'] = experiment_config['experimentName']
-    request_data['trialConcurrency'] = experiment_config['trialConcurrency']
-    request_data['maxExecDuration'] = experiment_config['maxExecDuration']
-    request_data['maxTrialNum'] = experiment_config['maxTrialNum']
-    request_data['searchSpace'] = experiment_config.get('searchSpace')
+    request_data = {
+        'authorName': experiment_config['authorName'],
+        'experimentName': experiment_config['experimentName'],
+        'trialConcurrency': experiment_config['trialConcurrency'],
+        'maxExecDuration': experiment_config['maxExecDuration'],
+        'maxTrialNum': experiment_config['maxTrialNum'],
+        'searchSpace': experiment_config.get('searchSpace'),
+    }
     request_data['trainingServicePlatform'] = experiment_config.get('trainingServicePlatform')
 
     if experiment_config.get('description'):
@@ -351,13 +349,12 @@ def set_experiment(experiment_config, mode, port, config_file_name):
     response = rest_post(experiment_url(port), json.dumps(request_data), REST_TIME_OUT, show_error=True)
     if check_response(response):
         return response
-    else:
-        _, stderr_full_path = get_log_path(config_file_name)
-        if response is not None:
-            with open(stderr_full_path, 'a+') as fout:
-                fout.write(json.dumps(json.loads(response.text), indent=4, sort_keys=True, separators=(',', ':')))
-            print_error('Setting experiment error, error message is {}'.format(response.text))
-        return None
+    _, stderr_full_path = get_log_path(config_file_name)
+    if response is not None:
+        with open(stderr_full_path, 'a+') as fout:
+            fout.write(json.dumps(json.loads(response.text), indent=4, sort_keys=True, separators=(',', ':')))
+        print_error(f'Setting experiment error, error message is {response.text}')
+    return None
 
 def set_platform_config(platform, experiment_config, port, config_file_name, rest_process):
     '''call set_cluster_metadata for specific platform'''
@@ -375,11 +372,10 @@ def set_platform_config(platform, experiment_config, port, config_file_name, res
         config_result, err_msg = set_frameworkcontroller_config(experiment_config, port, config_file_name)
     else:
         raise Exception(ERROR_INFO % 'Unsupported platform!')
-        exit(1)
     if config_result:
         print_normal('Successfully set {0} config!'.format(platform))
     else:
-        print_error('Failed! Error is: {}'.format(err_msg))
+        print_error(f'Failed! Error is: {err_msg}')
         try:
             kill_command(rest_process.pid)
         except Exception:
@@ -400,10 +396,14 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     if package_name and module_name:
         try:
             stdout_full_path, stderr_full_path = get_log_path(config_file_name)
-            with open(stdout_full_path, 'a+') as stdout_file, open(stderr_full_path, 'a+') as stderr_file:
-                check_call([sys.executable, '-c', 'import %s'%(module_name)], stdout=stdout_file, stderr=stderr_file)
+            with (open(stdout_full_path, 'a+') as stdout_file, open(stderr_full_path, 'a+') as stderr_file):
+                check_call(
+                    [sys.executable, '-c', f'import {module_name}'],
+                    stdout=stdout_file,
+                    stderr=stderr_file,
+                )
         except CalledProcessError:
-            print_error('some errors happen when import package %s.' %(package_name))
+            print_error(f'some errors happen when import package {package_name}.')
             print_log_content(config_file_name)
             if package_name in PACKAGE_REQUIREMENTS:
                 print_error('If %s is not installed, it should be installed through '\
@@ -459,8 +459,9 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     # set debug configuration
     if mode != 'view' and experiment_config.get('debug') is None:
         experiment_config['debug'] = args.debug
-    response = set_experiment(experiment_config, mode, args.port, config_file_name)
-    if response:
+    if response := set_experiment(
+        experiment_config, mode, args.port, config_file_name
+    ):
         if experiment_id is None:
             experiment_id = json.loads(response.text).get('experiment_id')
         nni_config.set_config('experimentId', experiment_id)
@@ -514,7 +515,7 @@ def manage_stopped_experiment(args, mode):
         exit(1)
     else:
         if experiment_dict.get(args.id) is None:
-            print_error('Id %s not exist!' % args.id)
+            print_error(f'Id {args.id} not exist!')
             exit(1)
         if experiment_dict[args.id]['status'] != 'STOPPED':
             print_error('Only stopped experiments can be {0}ed!'.format(mode))

@@ -49,7 +49,7 @@ class ImageDataset(data.Dataset):
             self.mask_filenames = meta[Y_COLUMN].values
 
     def __getitem__(self, index):
-        base_img_fn = '{}.png'.format(self.img_ids[index])
+        base_img_fn = f'{self.img_ids[index]}.png'
         if self.is_train[index]: #self.train_mode:
             img_fn = os.path.join(TRAIN_IMG_DIR, base_img_fn)
         else:
@@ -57,7 +57,7 @@ class ImageDataset(data.Dataset):
         img = self.load_image(img_fn)
 
         if self.train_mode:
-            base_mask_fn = '{}.png'.format(self.img_ids[index])
+            base_mask_fn = f'{self.img_ids[index]}.png'
             if self.is_train[index]:
                 mask_fn = os.path.join(TRAIN_MASK_DIR, base_mask_fn)
             else:
@@ -264,7 +264,7 @@ def add_depth_channel(img_tensor, pad_mode):
 def test_train_loader():
     train_loader, val_loader = get_train_loaders(1, batch_size=4, dev_mode=False, pad_mode='edge', meta_version=2, pseudo_label=True)
     print(train_loader.num, val_loader.num)
-    for i, data in enumerate(train_loader):
+    for data in train_loader:
         imgs, masks, salt_exists = data
         #pdb.set_trace()
         print(imgs.size(), masks.size(), salt_exists.size())

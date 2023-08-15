@@ -19,7 +19,7 @@ class FixedProductTuner(GridSearchTuner):
         Filter out all qualified parameters
         """
         para = super().expand_parameters(para)
-        if all([key in para[0] for key in ["alpha", "beta", "gamma"]]):  # if this is an interested set
+        if all(key in para[0] for key in ["alpha", "beta", "gamma"]):  # if this is an interested set
             ret_para = []
             for p in para:
                 prod = p["alpha"] * (p["beta"] ** 2) * (p["gamma"] ** 2)

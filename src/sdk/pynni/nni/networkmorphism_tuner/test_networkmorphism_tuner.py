@@ -168,7 +168,7 @@ class NetworkMorphismTestCase(TestCase):
         """
 
         tuner = NetworkMorphismTuner()
-        self.assertEqual(tuner.search_space, dict())
+        self.assertEqual(tuner.search_space, {})
         tuner.update_search_space("Test")
         self.assertEqual(tuner.search_space, "Test")
 

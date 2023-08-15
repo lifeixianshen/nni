@@ -57,12 +57,12 @@ class DataPartitioner(object):
         rng = Random()
         rng.seed(seed)
         data_len = len(data)
-        indexes = [x for x in range(0, data_len)]
+        indexes = list(range(0, data_len))
         rng.shuffle(indexes)
 
         for frac in sizes:
             part_len = int(frac * data_len)
-            self.partitions.append(indexes[0:part_len])
+            self.partitions.append(indexes[:part_len])
             indexes = indexes[part_len:]
 
     def use(self, partition):
@@ -129,7 +129,7 @@ def run(params):
 
     num_batches = ceil(len(train_set.dataset) / float(bsz))
     total_loss = 0.0
-    for epoch in range(3):
+    for _ in range(3):
         epoch_loss = 0.0
         for data, target in train_set:
             data, target = Variable(data), Variable(target)
@@ -145,7 +145,7 @@ def run(params):
             nni.report_intermediate_result(epoch_loss / num_batches)
         total_loss += (epoch_loss / num_batches)
     total_loss /= 3
-    logger.debug('Final loss: {}'.format(total_loss))
+    logger.debug(f'Final loss: {total_loss}')
     if rank == 0:
         nni.report_final_result(total_loss)
 
@@ -159,10 +159,7 @@ def generate_default_params():
     '''
     Generate default parameters for mnist network.
     '''
-    params = {
-        'learning_rate': 0.01,
-        'momentum': 0.5}
-    return params
+    return {'learning_rate': 0.01, 'momentum': 0.5}
 
 if __name__ == "__main__":
     RCV_PARAMS = nni.get_next_parameter()

@@ -63,15 +63,11 @@ def split_index(params):
     """
     Delete index infromation from params
     """
-    if isinstance(params, dict):
-        if NodeType.INDEX in params.keys():
-            return split_index(params[NodeType.VALUE])
-        result = {}
-        for key in params:
-            result[key] = split_index(params[key])
-        return result
-    else:
+    if not isinstance(params, dict):
         return params
+    if NodeType.INDEX in params.keys():
+        return split_index(params[NodeType.VALUE])
+    return {key: split_index(params[key]) for key in params}
 
 
 def extract_scalar_reward(value, scalar_key='default'):

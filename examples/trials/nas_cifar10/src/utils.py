@@ -41,7 +41,7 @@ def print_user_flags(line_limit=80):
     FLAGS = tf.app.flags.FLAGS
 
     for flag_name in sorted(user_flags):
-        value = "{}".format(getattr(FLAGS, flag_name))
+        value = f"{getattr(FLAGS, flag_name)}"
         log_string = flag_name
         log_string += "." * (line_limit - len(flag_name) - len(value))
         log_string += value
@@ -111,10 +111,9 @@ def count_model_params(tf_variables):
         tf_variables: list of all model variables
     """
 
-    num_vars = 0
-    for var in tf_variables:
-        num_vars += np.prod([dim.value for dim in var.get_shape()])
-    return num_vars
+    return sum(
+        np.prod([dim.value for dim in var.get_shape()]) for var in tf_variables
+    )
 
 
 def get_train_ops(

@@ -28,9 +28,15 @@ from .common_utils import print_error
 def rest_put(url, data, timeout, show_error=False):
     '''Call rest put method'''
     try:
-        response = requests.put(url, headers={'Accept': 'application/json', 'Content-Type': 'application/json'},\
-                                data=data, timeout=timeout)
-        return response
+        return requests.put(
+            url,
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            data=data,
+            timeout=timeout,
+        )
     except Exception as exception:
         if show_error:
             print_error(exception)
@@ -39,9 +45,15 @@ def rest_put(url, data, timeout, show_error=False):
 def rest_post(url, data, timeout, show_error=False):
     '''Call rest post method'''
     try:
-        response = requests.post(url, headers={'Accept': 'application/json', 'Content-Type': 'application/json'},\
-                                 data=data, timeout=timeout)
-        return response
+        return requests.post(
+            url,
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            data=data,
+            timeout=timeout,
+        )
     except Exception as exception:
         if show_error:
             print_error(exception)
@@ -50,8 +62,7 @@ def rest_post(url, data, timeout, show_error=False):
 def rest_get(url, timeout, show_error=False):
     '''Call rest get method'''
     try:
-        response = requests.get(url, timeout=timeout)
-        return response
+        return requests.get(url, timeout=timeout)
     except Exception as exception:
         if show_error:
             print_error(exception)
@@ -60,8 +71,7 @@ def rest_get(url, timeout, show_error=False):
 def rest_delete(url, timeout, show_error=False):
     '''Call rest delete method'''
     try:
-        response = requests.delete(url, timeout=timeout)
-        return response
+        return requests.delete(url, timeout=timeout)
     except Exception as exception:
         if show_error:
             print_error(exception)
@@ -73,10 +83,7 @@ def check_rest_server(rest_port):
     for _ in range(retry_count):
         response = rest_get(check_status_url(rest_port), REST_TIME_OUT)
         if response:
-            if response.status_code == 200:
-                return True, response
-            else:
-                return False, response
+            return (True, response) if response.status_code == 200 else (False, response)
         else:
             time.sleep(3)
     return  False, response
@@ -90,6 +97,4 @@ def check_rest_server_quick(rest_port):
 
 def check_response(response):
     '''Check if a response is success according to status_code'''
-    if response and response.status_code == 200:
-        return True
-    return False
+    return bool(response and response.status_code == 200)

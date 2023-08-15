@@ -33,7 +33,7 @@ def check_sum(fl_name, tid=None):
             hasher.update(chunk)
     ret = hasher.hexdigest()
     if tid is not None:
-        ret = ret + str(tid)
+        ret += str(tid)
     return ret
 
 

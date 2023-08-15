@@ -52,8 +52,7 @@ class SMACTuner(Tuner):
         optimize_mode : str
             Optimize mode, 'maximize' or 'minimize', by default 'maximize'
         """
-        self.logger = logging.getLogger(
-            self.__module__ + "." + self.__class__.__name__)
+        self.logger = logging.getLogger(f"{self.__module__}.{self.__class__.__name__}")
         self.optimize_mode = OptimizeMode(optimize_mode)
         self.total_data = {}
         self.optimizer = None
@@ -96,40 +95,41 @@ class SMACTuner(Tuner):
         # Create defaults
         rh = None
         initial_configs = None
-        stats = None
-        incumbent = None
-
         # Create scenario-object
         scen = Scenario(args.scenario_file, [])
         self.cs = scen.cs
 
         if args.mode == "SMAC":
-            optimizer = SMAC(
+            stats = None
+            incumbent = None
+
+            return SMAC(
                 scenario=scen,
                 rng=np.random.RandomState(args.seed),
                 runhistory=rh,
                 initial_configurations=initial_configs,
                 stats=stats,
                 restore_incumbent=incumbent,
-                run_id=args.seed)
+                run_id=args.seed,
+            )
         elif args.mode == "ROAR":
-            optimizer = ROAR(
+            return ROAR(
                 scenario=scen,
                 rng=np.random.RandomState(args.seed),
                 runhistory=rh,
                 initial_configurations=initial_configs,
-                run_id=args.seed)
+                run_id=args.seed,
+            )
         elif args.mode == "EPILS":
-            optimizer = EPILS(
+            return EPILS(
                 scenario=scen,
                 rng=np.random.RandomState(args.seed),
                 runhistory=rh,
                 initial_configurations=initial_configs,
-                run_id=args.seed)
+                run_id=args.seed,
+            )
         else:
-            optimizer = None
-
-        return optimizer
+            return None
 
     def update_search_space(self, search_space):
         """
@@ -264,8 +264,8 @@ class SMACTuner(Tuner):
         list
             a list of newly generated configurations
         """
+        params = []
         if self.first_one:
-            params = []
             for one_id in parameter_id_list:
                 init_challenger = self.smbo_solver.nni_smac_start()
                 self.total_data[one_id] = init_challenger
@@ -273,7 +273,6 @@ class SMACTuner(Tuner):
         else:
             challengers = self.smbo_solver.nni_smac_request_challengers()
             cnt = 0
-            params = []
             for challenger in challengers:
                 if cnt >= len(parameter_id_list):
                     break

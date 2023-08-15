@@ -36,19 +36,13 @@ class RandomHFlipWithMask(object):
     def __init__(self, p=0.5):
         self.p = p
     def __call__(self, *imgs):
-        if random.random() < self.p:
-            return map(F.hflip, imgs)
-        else:
-            return imgs
+        return map(F.hflip, imgs) if random.random() < self.p else imgs
 
 class RandomVFlipWithMask(object):
     def __init__(self, p=0.5):
         self.p = p
     def __call__(self, *imgs):
-        if random.random() < self.p:
-            return map(F.vflip, imgs)
-        else:
-            return imgs
+        return map(F.vflip, imgs) if random.random() < self.p else imgs
 
 class RandomResizedCropWithMask(RandomResizedCrop):
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation=Image.BILINEAR):
@@ -78,21 +72,19 @@ class RandomRotateWithMask(object):
 
     def __call__(self, *imgs):
         angle = self.get_angle()
-        if angle == int(angle) and angle % 90 == 0:
-            if angle == 0:
-                return imgs
-            else:
-                #print(imgs)
-                return map(lambda x: F.rotate(x, angle, False, False, None), imgs)
-        else:
+        if angle != int(angle) or angle % 90 != 0:
             return map(lambda x: self._pad_rotate(x, angle), imgs)
+        if angle == 0:
+            return imgs
+        else:
+            #print(imgs)
+            return map(lambda x: F.rotate(x, angle, False, False, None), imgs)
 
     def get_angle(self):
-        if isinstance(self.degrees, collections.Sequence):
-            index = int(random.random() * len(self.degrees))
-            return self.degrees[index]
-        else:
+        if not isinstance(self.degrees, collections.Sequence):
             return random.uniform(-self.degrees, self.degrees)
+        index = int(random.random() * len(self.degrees))
+        return self.degrees[index]
 
     def _pad_rotate(self, img, angle):
         w, h = img.size
@@ -126,7 +118,7 @@ class Compose(object):
             imgs = t(*imgs)
         return imgs
     def __repr__(self):
-        format_string = self.__class__.__name__ + '('
+        format_string = f'{self.__class__.__name__}('
         for t in self.transforms:
             format_string += '\n'
             format_string += '    {0}'.format(t)

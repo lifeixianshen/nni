@@ -42,7 +42,7 @@ class WhitespaceTokenizer:
         start = -1
         tokens = []
         for i, character in enumerate(text):
-            if character == ' ' or character == '\t':
+            if character in [' ', '\t']:
                 if start >= 0:
                     word = text[start:i]
                     tokens.append({
@@ -51,16 +51,17 @@ class WhitespaceTokenizer:
                         'char_begin': start,
                         'char_end': i})
                     start = -1
-            else:
-                if start < 0:
-                    start = i
+            elif start < 0:
+                start = i
         if start >= 0:
-            tokens.append({
-                'word': text[start:len(text)],
-                'original_text': text[start:len(text)],
-                'char_begin': start,
-                'char_end': len(text)
-            })
+            tokens.append(
+                {
+                    'word': text[start:],
+                    'original_text': text[start:],
+                    'char_begin': start,
+                    'char_end': len(text),
+                }
+            )
         return tokens
 
 
@@ -96,11 +97,10 @@ def load_from_file(path, fmt=None, is_training=True):
     else:
         with open(path, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter='\t')
-            line_num = 0
-            for row in reader:
-                qp_pairs.append(
-                    {'passage': row[1], 'question': row[0], 'id': line_num})
-                line_num += 1
+            qp_pairs.extend(
+                {'passage': row[1], 'question': row[0], 'id': line_num}
+                for line_num, row in enumerate(reader)
+            )
     return qp_pairs
 
 
@@ -215,7 +215,7 @@ def get_word_index(tokens, char_index):
     for (i, token) in enumerate(tokens):
         if token['char_end'] == 0:
             continue
-        if token['char_begin'] <= char_index and char_index <= token['char_end']:
+        if token['char_begin'] <= char_index <= token['char_end']:
             return i
     return 0
 

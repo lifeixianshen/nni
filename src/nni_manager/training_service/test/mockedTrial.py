@@ -7,7 +7,7 @@ MAGIC = 'ME'
 def sdk_send_data(data):
     out_dir = os.getenv('NNI_SYS_DIR')
     if not os.path.isdir(out_dir):
-        raise Exception('Can not find NNI_SYS_DIR: {}'.format(out_dir))
+        raise Exception(f'Can not find NNI_SYS_DIR: {out_dir}')
 
     filename = os.path.join(out_dir, METRICS_FILENAME)
     wrapped_data = data + '\n'

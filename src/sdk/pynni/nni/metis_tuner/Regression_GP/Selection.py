@@ -44,14 +44,18 @@ def selection_r(acquisition_function,
     '''
     Selecte R value
     '''
-    minimize_starting_points = [lib_data.rand(x_bounds, x_types) \
-                                    for i in range(0, num_starting_points)]
-    outputs = selection(acquisition_function, samples_y_aggregation,
-                        x_bounds, x_types, regressor_gp,
-                        minimize_starting_points,
-                        minimize_constraints_fun=minimize_constraints_fun)
-
-    return outputs
+    minimize_starting_points = [
+        lib_data.rand(x_bounds, x_types) for _ in range(0, num_starting_points)
+    ]
+    return selection(
+        acquisition_function,
+        samples_y_aggregation,
+        x_bounds,
+        x_types,
+        regressor_gp,
+        minimize_starting_points,
+        minimize_constraints_fun=minimize_constraints_fun,
+    )
 
 def selection(acquisition_function,
               samples_y_aggregation,
@@ -110,5 +114,5 @@ def _minimize_constraints_fun_summation(x):
     '''
     Minimize the constraints fun summation
     '''
-    summation = sum([x[i] for i in CONSTRAINT_PARAMS_IDX])
+    summation = sum(x[i] for i in CONSTRAINT_PARAMS_IDX)
     return CONSTRAINT_UPPERBOUND >= summation >= CONSTRAINT_LOWERBOUND

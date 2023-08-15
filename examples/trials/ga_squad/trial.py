@@ -71,8 +71,7 @@ def get_config():
     parser.add_argument('--num_heads', type=int, default=1, help='num_heads')
     parser.add_argument('--rnn_units', type=int, default=256, help='rnn_units')
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_id(word_dict, word):
@@ -178,10 +177,8 @@ def run_epoch(batches, answer_net, is_training):
 
     loss_sum = 0
     timer = Timer()
-    count = 0
-    for batch in batches:
+    for count, batch in enumerate(batches, start=1):
         used = timer.get_elapsed(False)
-        count += 1
         qps = batch['qp_pairs']
         question_tokens = [qp['question_tokens'] for qp in qps]
         passage_tokens = [qp['passage_tokens'] for qp in qps]
@@ -274,10 +271,8 @@ def generate_data(path, tokenizer, char_vcb, word_vcb, is_training=False):
     global root_path
     qp_pairs = data.load_from_file(path=path, is_training=is_training)
 
-    tokenized_sent = 0
     # qp_pairs = qp_pairs[:1000]1
-    for qp_pair in qp_pairs:
-        tokenized_sent += 1
+    for tokenized_sent, qp_pair in enumerate(qp_pairs):
         data.tokenize(qp_pair, tokenizer, is_training)
         for word in qp_pair['question_tokens']:
             word_vcb.add(word['word'])
@@ -326,8 +321,7 @@ def train_with_graph(graph, qp_pairs, dev_qp_pairs):
                 logger.debug('begin to train')
                 train_batches = data.get_batches(qp_pairs, cfg.batch_size)
                 train_loss = run_epoch(train_batches, train_model, True)
-                logger.debug('epoch ' + str(epoch) +
-                             ' loss: ' + str(train_loss))
+                logger.debug(f'epoch {str(epoch)} loss: {str(train_loss)}')
                 dev_batches = list(data.get_batches(
                     dev_qp_pairs, cfg.batch_size))
                 _, position1, position2, ids, contexts = run_epoch(

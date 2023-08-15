@@ -83,8 +83,6 @@ class TunerTestCase(TestCase):
                         else:
                             self.assertGreaterEqual(v, cand[0])
                             self.assertLessEqual(v, cand[1])
-                    if choice == "optional_inputs":
-                        pass  # ignore for now
                     continue
                 item = search_space[k]
                 if item["_type"] == "choice":
@@ -119,12 +117,17 @@ class TunerTestCase(TestCase):
         if supported_types is None:
             supported_types = ["choice", "randint", "uniform", "quniform", "loguniform", "qloguniform",
                                "normal", "qnormal", "lognormal", "qlognormal"]
-        full_supported_search_space = dict()
+        full_supported_search_space = {}
         for single in search_space_all:
             single_keyword = single.split("_")
             space = search_space_all[single]
-            expected_fail = not any([t in single_keyword for t in supported_types]) or "fail" in single_keyword
-            if ignore_types is not None and any([t in ignore_types for t in single_keyword]):
+            expected_fail = (
+                all(t not in single_keyword for t in supported_types)
+                or "fail" in single_keyword
+            )
+            if ignore_types is not None and any(
+                t in ignore_types for t in single_keyword
+            ):
                 continue
             if "fail" in space:
                 if self._testMethodName.split("_", 1)[1] in space.pop("fail"):
@@ -133,13 +136,13 @@ class TunerTestCase(TestCase):
             if not expected_fail:
                 # supports this key
                 self.search_space_test_one(tuner_factory, single_search_space)
-                full_supported_search_space.update(single_search_space)
+                full_supported_search_space |= single_search_space
             else:
                 # unsupported key
-                with self.assertRaises(Exception, msg="Testing {}".format(single)) as cm:
+                with self.assertRaises(Exception, msg=f"Testing {single}") as cm:
                     self.search_space_test_one(tuner_factory, single_search_space)
                 logger.info("%s %s %s", tuner_factory, single, cm.exception)
-        if not any(t in self._testMethodName for t in ["batch", "grid_search"]):
+        if all(t not in self._testMethodName for t in ["batch", "grid_search"]):
             # grid search fails for too many combinations
             logger.info("Full supported search space: %s", full_supported_search_space)
             self.search_space_test_one(tuner_factory, full_supported_search_space)

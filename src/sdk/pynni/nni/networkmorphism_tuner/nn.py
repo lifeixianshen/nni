@@ -156,7 +156,7 @@ class MlpGenerator(NetworkGenerator):
             model_len = Constant.MODEL_LEN
         if model_width is None:
             model_width = Constant.MODEL_WIDTH
-        if isinstance(model_width, list) and not len(model_width) == model_len:
+        if isinstance(model_width, list) and len(model_width) != model_len:
             raise ValueError(
                 "The length of 'model_width' does not match 'model_len'")
         elif isinstance(model_width, int):

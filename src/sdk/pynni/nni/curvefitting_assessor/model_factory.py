@@ -175,9 +175,7 @@ class CurveModel:
             samples after normalize weight
         """
         for i in range(NUM_OF_INSTANCE):
-            total = 0
-            for j in range(self.effective_model_num):
-                total += samples[i][j]
+            total = sum(samples[i][j] for j in range(self.effective_model_num))
             for j in range(self.effective_model_num):
                 samples[i][j] /= total
         return samples
@@ -256,7 +254,7 @@ class CurveModel:
         ret = np.ones(NUM_OF_INSTANCE)
         for i in range(NUM_OF_INSTANCE):
             for j in range(self.effective_model_num):
-                if not samples[i][j] > 0:
+                if samples[i][j] <= 0:
                     ret[i] = 0
             if self.f_comb(1, samples[i]) >= self.f_comb(self.target_pos, samples[i]):
                 ret[i] = 0
@@ -338,7 +336,8 @@ class CurveModel:
             # different curve's predictions are too scattered, requires more information
             return None
         self.mcmc_sampling()
-        ret = 0
-        for i in range(NUM_OF_INSTANCE):
-            ret += self.f_comb(self.target_pos, self.weight_samples[i])
+        ret = sum(
+            self.f_comb(self.target_pos, self.weight_samples[i])
+            for i in range(NUM_OF_INSTANCE)
+        )
         return ret / NUM_OF_INSTANCE

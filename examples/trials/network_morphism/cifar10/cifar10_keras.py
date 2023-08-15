@@ -83,8 +83,7 @@ def build_graph_from_json(ir_model_json):
     """
     graph = json_to_graph(ir_model_json)
     logging.debug(graph.operation_history)
-    model = graph.produce_keras_model()
-    return model
+    return graph.produce_keras_model()
 
 
 def parse_rev_args(receive_msg):
@@ -150,7 +149,7 @@ class SendMetrics(keras.callbacks.Callback):
         Run on end of each epoch
         """
         if logs is None:
-            logs = dict()
+            logs = {}
         logger.debug(logs)
         nni.report_intermediate_result(logs["val_acc"])
 

@@ -38,8 +38,7 @@ def create_submission(meta, predictions):
         rle_encoded = ' '.join(str(rle) for rle in run_length_encoding(mask))
         output.append([image_id, rle_encoded])
 
-    submission = pd.DataFrame(output, columns=['id', 'rle_mask']).astype(str)
-    return submission
+    return pd.DataFrame(output, columns=['id', 'rle_mask']).astype(str)
 
 
 def encode_rle(predictions):
@@ -49,7 +48,7 @@ def encode_rle(predictions):
 def read_masks(img_ids):
     masks = []
     for img_id in img_ids:
-        base_filename = '{}.png'.format(img_id)
+        base_filename = f'{img_id}.png'
         mask = Image.open(os.path.join(settings.TRAIN_MASK_DIR, base_filename))
         mask = np.asarray(mask.convert('L').point(lambda x: 0 if x < 128 else 1)).astype(np.uint8)
         masks.append(mask)
@@ -70,7 +69,7 @@ def run_length_encoding(x):
 
 def run_length_decoding(mask_rle, shape):
     s = mask_rle.split()
-    starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
+    starts, lengths = [np.asarray(x, dtype=int) for x in (s[:][::2], s[1:][::2])]
     starts -= 1
     ends = starts + lengths
     img = np.zeros(shape[1] * shape[0], dtype=np.uint8)
@@ -80,10 +79,10 @@ def run_length_decoding(mask_rle, shape):
 
 def get_salt_existence():
     train_mask = pd.read_csv(settings.LABEL_FILE)
-    salt_exists_dict = {}
-    for row in train_mask.values:
-        salt_exists_dict[row[0]] = 0 if (row[1] is np.nan or len(row[1]) < 1) else 1
-    return salt_exists_dict
+    return {
+        row[0]: 0 if (row[1] is np.nan or len(row[1]) < 1) else 1
+        for row in train_mask.values
+    }
 
 def generate_metadata(train_images_dir, test_images_dir, depths_filepath):
     depths = pd.read_csv(depths_filepath)

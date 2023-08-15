@@ -96,9 +96,7 @@ class TrialsInfo:
         """
         if self.iter >= self.inf_batch_size:
             return None, None
-        actions = []
-        for step in self.actions:
-            actions.append(step[self.iter])
+        actions = [step[self.iter] for step in self.actions]
         self.iter += 1
         return self.iter - 1, actions
 
@@ -401,8 +399,9 @@ class PPOTuner(Tuner):
                 chosen_layer_temp['chosen_layer'] = layer['layer_choice'][0]
 
             if layer['optional_input_size'] not in [0, 1, [0, 1]]:
-                raise ValueError('Optional_input_size can only be 0, 1, or [0, 1], but the pecified one is %s'
-                                 % (layer['optional_input_size']))
+                raise ValueError(
+                    f"Optional_input_size can only be 0, 1, or [0, 1], but the pecified one is {layer['optional_input_size']}"
+                )
             if isinstance(layer['optional_input_size'], list):
                 actions_spaces.append(["None", *layer['optional_inputs']])
                 actions_to_config.append((block_name, l_name, 'chosen_inputs'))
@@ -430,7 +429,9 @@ class PPOTuner(Tuner):
         actions_to_config = []
         for b_name, block in search_space.items():
             if block['_type'] != 'mutable_layer':
-                raise ValueError('PPOTuner only accept mutable_layer type in search space, but the current one is %s'%(block['_type']))
+                raise ValueError(
+                    f"PPOTuner only accept mutable_layer type in search space, but the current one is {block['_type']}"
+                )
             block = block['_value']
             act, act_map = self._process_one_nas_space(b_name, block)
             actions_spaces.extend(act)
@@ -441,7 +442,7 @@ class PPOTuner(Tuner):
         for step in actions_spaces:
             for action in step:
                 dedup[action] = 1
-        full_act_space = [act for act, _ in dedup.items()]
+        full_act_space = list(dedup)
         assert len(full_act_space) == len(dedup)
         observation_space = len(full_act_space)
 
@@ -454,8 +455,6 @@ class PPOTuner(Tuner):
         Different step could have different action space. to deal with this case, we merge all the
         possible actions into one action space, and use mask to indicate available actions for each step
         """
-        two_masks = []
-
         mask = []
         for acts in self.actions_spaces:
             one_mask = [0 for _ in range(len(self.full_act_space))]
@@ -463,8 +462,7 @@ class PPOTuner(Tuner):
                 idx = self.full_act_space.index(act)
                 one_mask[idx] = 1
             mask.append(one_mask)
-        two_masks.append(mask)
-
+        two_masks = [mask]
         mask = []
         for acts in self.actions_spaces:
             one_mask = [-np.inf for _ in range(len(self.full_act_space))]
@@ -582,8 +580,7 @@ class PPOTuner(Tuner):
             raise nni.NoMoreTrialError('no more parameters now.')
 
         self.running_trials[parameter_id] = trial_info_idx
-        new_config = self._actions_to_config(actions)
-        return new_config
+        return self._actions_to_config(actions)
 
     def _next_round_inference(self):
         """
@@ -654,19 +651,20 @@ class PPOTuner(Tuner):
         **kwargs
             Not used
         """
-        if not success:
-            if parameter_id not in self.running_trials:
-                logger.warning('The trial is failed, but self.running_trial does not have this trial')
-                return
-            trial_info_idx = self.running_trials.pop(parameter_id, None)
-            assert trial_info_idx is not None
-            # use mean of finished trials as the result of this failed trial
-            values = [val for val in self.trials_result if val is not None]
-            logger.warning('In trial_end, values: %s', values)
-            self.trials_result[trial_info_idx] = (sum(values) / len(values)) if values else 0
-            self.finished_trials += 1
-            if self.finished_trials == self.inf_batch_size:
-                self._next_round_inference()
+        if success:
+            return
+        if parameter_id not in self.running_trials:
+            logger.warning('The trial is failed, but self.running_trial does not have this trial')
+            return
+        trial_info_idx = self.running_trials.pop(parameter_id, None)
+        assert trial_info_idx is not None
+        # use mean of finished trials as the result of this failed trial
+        values = [val for val in self.trials_result if val is not None]
+        logger.warning('In trial_end, values: %s', values)
+        self.trials_result[trial_info_idx] = (sum(values) / len(values)) if values else 0
+        self.finished_trials += 1
+        if self.finished_trials == self.inf_batch_size:
+            self._next_round_inference()
 
     def import_data(self, data):
         """

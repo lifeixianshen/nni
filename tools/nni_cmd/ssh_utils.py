@@ -53,8 +53,7 @@ def create_ssh_sftp_client(host_ip, port, username, password):
         paramiko = check_environment()
         conn = paramiko.Transport(host_ip, port)
         conn.connect(username=username, password=password)
-        sftp = paramiko.SFTPClient.from_transport(conn)
-        return sftp
+        return paramiko.SFTPClient.from_transport(conn)
     except Exception as exception:
         print_error('Create ssh client error %s\n' % exception)
 

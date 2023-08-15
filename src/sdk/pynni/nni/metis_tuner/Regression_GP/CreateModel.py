@@ -43,10 +43,11 @@ def create_model(samples_x, samples_y_aggregation,
                                             alpha=1e-10)
     regressor.fit(numpy.array(samples_x), numpy.array(samples_y_aggregation))
 
-    model = {}
-    model['model'] = regressor
-    model['kernel_prior'] = str(kernel)
-    model['kernel_posterior'] = str(regressor.kernel_)
-    model['model_loglikelihood'] = regressor.log_marginal_likelihood(regressor.kernel_.theta)
-
-    return model
+    return {
+        'model': regressor,
+        'kernel_prior': str(kernel),
+        'kernel_posterior': str(regressor.kernel_),
+        'model_loglikelihood': regressor.log_marginal_likelihood(
+            regressor.kernel_.theta
+        ),
+    }

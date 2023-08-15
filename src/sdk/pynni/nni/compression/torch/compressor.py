@@ -98,9 +98,7 @@ class Compressor:
             if config.get('op_names') and layer.name not in config['op_names']:
                 continue
             ret = config
-        if ret is None or ret.get('exclude'):
-            return None
-        return ret
+        return None if ret is None or ret.get('exclude') else ret
 
     def update_epoch(self, epoch):
         """
@@ -231,21 +229,23 @@ class Pruner(Compressor):
                 m.weight.data = m.weight.data.mul(mask)
             else:
                 _logger.info('Layer: %s  NOT compressed', name)
-                print('Layer: %s  NOT compressed' % name)
+                print(f'Layer: {name}  NOT compressed')
         torch.save(self.bound_model.state_dict(), model_path)
         _logger.info('Model state_dict saved to %s', model_path)
-        print('Model state_dict saved to %s' % model_path)
+        print(f'Model state_dict saved to {model_path}')
         if mask_path is not None:
             torch.save(self.mask_dict, mask_path)
             _logger.info('Mask dict saved to %s', mask_path)
-            print('Mask dict saved to %s' % mask_path)
+            print(f'Mask dict saved to {mask_path}')
         if onnx_path is not None:
             assert input_shape is not None, 'input_shape must be specified to export onnx model'
             # input info needed
             input_data = torch.Tensor(*input_shape)
             torch.onnx.export(self.bound_model, input_data, onnx_path)
             _logger.info('Model in onnx with input shape %s saved to %s', input_data.shape, onnx_path)
-            print('Model in onnx with input shape %s saved to %s' % (input_data.shape, onnx_path))
+            print(
+                f'Model in onnx with input shape {input_data.shape} saved to {onnx_path}'
+            )
 
 
 class Quantizer(Compressor):

@@ -32,8 +32,7 @@ class SimpleTuner(Tuner):
                 'checksum': None,
                 'path': '',
             }
-            _logger.info('generate parameter for father trial %s' %
-                         parameter_id)
+            _logger.info(f'generate parameter for father trial {parameter_id}')
             self.thread_lock.release()
             return {
                 'prev_id': 0,
@@ -56,10 +55,10 @@ class SimpleTuner(Tuner):
             self.trial_meta[parameter_id]['checksum'] = reward['checksum']
             self.trial_meta[parameter_id]['path'] = reward['path']
             self.sig_event.set()
-        else:
-            if reward['checksum'] != self.trial_meta[self.f_id]['checksum']:
-                raise ValueError("Inconsistency in weight sharing: {} != {}".format(
-                    reward['checksum'], self.trial_meta[self.f_id]['checksum']))
+        elif reward['checksum'] != self.trial_meta[self.f_id]['checksum']:
+            raise ValueError(
+                f"Inconsistency in weight sharing: {reward['checksum']} != {self.trial_meta[self.f_id]['checksum']}"
+            )
         self.thread_lock.release()
 
     def update_search_space(self, search_space):

@@ -70,17 +70,14 @@ def get_config():
     parser.add_argument('--num_heads', type=int, default=1, help='num_heads')
     parser.add_argument('--rnn_units', type=int, default=256, help='rnn_units')
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_id(word_dict, word):
     '''
     Return word id.
     '''
-    if word in word_dict.keys():
-        return word_dict[word]
-    return word_dict['<unk>']
+    return word_dict[word] if word in word_dict.keys() else word_dict['<unk>']
 
 
 def load_embedding(path):
@@ -179,10 +176,8 @@ def run_epoch(batches, answer_net, is_training):
 
     loss_sum = 0
     timer = Timer()
-    count = 0
-    for batch in batches:
+    for count, batch in enumerate(batches, start=1):
         used = timer.get_elapsed(False)
-        count += 1
         qps = batch['qp_pairs']
         question_tokens = [qp['question_tokens'] for qp in qps]
         passage_tokens = [qp['passage_tokens'] for qp in qps]
@@ -275,10 +270,8 @@ def generate_data(path, tokenizer, char_vcb, word_vcb, is_training=False):
     global root_path
     qp_pairs = data.load_from_file(path=path, is_training=is_training)
 
-    tokenized_sent = 0
     # qp_pairs = qp_pairs[:1000]1
-    for qp_pair in qp_pairs:
-        tokenized_sent += 1
+    for tokenized_sent, qp_pair in enumerate(qp_pairs):
         data.tokenize(qp_pair, tokenizer, is_training)
         for word in qp_pair['question_tokens']:
             word_vcb.add(word['word'])
@@ -312,7 +305,9 @@ def train_with_graph(p_graph, qp_pairs, dev_qp_pairs):
         with tf.Session() as sess:
             if restore_path is not None:
                 restore_mapping = dict(zip(restore_shared, restore_shared))
-                logger.debug('init shared variables from {}, restore_scopes: {}'.format(restore_path, restore_shared))
+                logger.debug(
+                    f'init shared variables from {restore_path}, restore_scopes: {restore_shared}'
+                )
                 init_from_checkpoint(restore_path, restore_mapping)
             logger.debug('init variables')
             logger.debug(sess.run(tf.report_uninitialized_variables()))
@@ -332,8 +327,7 @@ def train_with_graph(p_graph, qp_pairs, dev_qp_pairs):
                 logger.debug('begin to train')
                 train_batches = data.get_batches(qp_pairs, cfg.batch_size)
                 train_loss = run_epoch(train_batches, train_model, True)
-                logger.debug('epoch ' + str(epoch) +
-                             ' loss: ' + str(train_loss))
+                logger.debug(f'epoch {str(epoch)} loss: {str(train_loss)}')
                 dev_batches = list(data.get_batches(
                     dev_qp_pairs, cfg.batch_size))
                 _, position1, position2, ids, contexts = run_epoch(
@@ -342,7 +336,7 @@ def train_with_graph(p_graph, qp_pairs, dev_qp_pairs):
                 answers = generate_predict_json(
                     position1, position2, ids, contexts)
                 if save_path is not None:
-                    logger.info('save prediction file to {}'.format(save_path))
+                    logger.info(f'save prediction file to {save_path}')
                     with open(os.path.join(save_path, 'epoch%d.prediction' % epoch), 'w') as file:
                         json.dump(answers, file)
                 else:
@@ -364,7 +358,7 @@ def train_with_graph(p_graph, qp_pairs, dev_qp_pairs):
                     bestacc = acc
 
                     if save_path is not None:
-                        logger.info('save model & prediction to {}'.format(save_path))
+                        logger.info(f'save model & prediction to {save_path}')
                         saver.save(sess, os.path.join(save_path, 'epoch%d.model' % epoch))
                         with open(os.path.join(save_path, 'epoch%d.score' % epoch), 'wb') as file:
                             pickle.dump(
@@ -450,7 +444,11 @@ if __name__ == '__main__':
         save_path = original_params['save_dir']
         os.makedirs(save_path)
         restore_path = original_params['restore_dir']
-        restore_shared = [hash_id + '/' for hash_id in original_params['shared_id']] if original_params['shared_id'] is not None else [] + ['word_embed', 'char_embed', 'char_encoding/']
+        restore_shared = (
+            [f'{hash_id}/' for hash_id in original_params['shared_id']]
+            if original_params['shared_id'] is not None
+            else [] + ['word_embed', 'char_embed', 'char_encoding/']
+        )
         train_loss, best_acc = train_with_graph(p_graph, qp_pairs, dev_qp_pairs)
 
         logger.debug('Send best acc: %s', str(best_acc))

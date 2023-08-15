@@ -53,7 +53,9 @@ class MnistNetwork(object):
                 input_dim = int(math.sqrt(self.x_dim))
             except:
                 #print('input dim cannot be sqrt and reshape. input dim: ' + str(self.x_dim))
-                logger.debug('input dim cannot be sqrt and reshape. input dim: ' + str(self.x_dim))
+                logger.debug(
+                    f'input dim cannot be sqrt and reshape. input dim: {str(self.x_dim)}'
+                )
                 raise
             x_image = tf.reshape(self.x, [-1, input_dim, input_dim, 1])
 
@@ -84,10 +86,10 @@ class MnistNetwork(object):
         # is down to 7x7x64 feature maps -- maps this to 1024 features.
         last_dim = int(input_dim / (self.pool_size * self.pool_size))
         with tf.name_scope('fc1'):
-            W_fc1 = weight_variable([last_dim * last_dim * self.channel_2_num, self.hidden_size])
+            W_fc1 = weight_variable([last_dim**2 * self.channel_2_num, self.hidden_size])
             b_fc1 = bias_variable([self.hidden_size])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, last_dim * last_dim * self.channel_2_num])
+        h_pool2_flat = tf.reshape(h_pool2, [-1, last_dim**2 * self.channel_2_num])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
         # Dropout - controls the complexity of the model, prevents co-adaptation of features.
@@ -147,7 +149,7 @@ def main():
 
     # Write log
     graph_location = tempfile.mkdtemp()
-    logger.debug('Saving graph to: %s' % graph_location)
+    logger.debug(f'Saving graph to: {graph_location}')
     # print('Saving graph to: %s' % graph_location)
     train_writer = tf.summary.FileWriter(graph_location)
     train_writer.add_graph(tf.get_default_graph())
@@ -156,12 +158,11 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         batch_num=200
+        dropout_rate=0.5
         for i in range(batch_num):
             '''@nni.variable(nni.choice(50,250,500),name=batch_size)'''
-            batch_size=50
-            batch = mnist.train.next_batch(batch_size)
+            batch = mnist.train.next_batch(50)
             '''@nni.variable(nni.choice(1,5),name=dropout_rate)'''
-            dropout_rate=0.5
             mnist_network.train_step.run(feed_dict={mnist_network.x: batch[0], mnist_network.y: batch[1], mnist_network.keep_prob: dropout_rate})
 
             if i % 100 == 0:
@@ -179,17 +180,18 @@ def main():
 
 
 def generate_default_params():
-    params = {'data_dir': '/tmp/tensorflow/mnist/input_data',
-              'dropout_rate': 0.5,
-              'channel_1_num': 32,
-              'channel_2_num': 64,
-              'conv_size': 5,
-              'pool_size': 2,
-              'hidden_size': 1024,
-              'batch_size': 50,
-              'batch_num': 200,
-              'learning_rate': 1e-4}
-    return params
+    return {
+        'data_dir': '/tmp/tensorflow/mnist/input_data',
+        'dropout_rate': 0.5,
+        'channel_1_num': 32,
+        'channel_2_num': 64,
+        'conv_size': 5,
+        'pool_size': 2,
+        'hidden_size': 1024,
+        'batch_size': 50,
+        'batch_num': 200,
+        'learning_rate': 1e-4,
+    }
 
 if __name__ == '__main__':
     # run command: python mnist.py --init_file_path ./init.json

@@ -150,7 +150,7 @@ class Model(object):
 
         assert self.global_step is not None
         global_step = sess.run(self.global_step)
-        print("Eval at {}".format(global_step))
+        print(f"Eval at {global_step}")
 
         if eval_set == "valid":
             assert self.x_valid is not None
@@ -164,12 +164,12 @@ class Model(object):
             num_batches = self.num_test_batches
             acc_op = self.test_acc
         else:
-            raise NotImplementedError("Unknown eval_set '{}'".format(eval_set))
+            raise NotImplementedError(f"Unknown eval_set '{eval_set}'")
 
         total_acc = 0
         total_exp = 0
 
-        for batch_id in range(num_batches):
+        for _ in range(num_batches):
             acc = sess.run(acc_op)
 
             total_acc += acc

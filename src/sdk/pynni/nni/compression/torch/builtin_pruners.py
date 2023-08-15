@@ -96,10 +96,11 @@ class AGP_Pruner(Pruner):
 
         span = ((end_epoch - start_epoch - 1) // freq) * freq
         assert span > 0
-        target_sparsity = (final_sparsity +
-                           (initial_sparsity - final_sparsity) *
-                           (1.0 - ((self.now_epoch - start_epoch) / span)) ** 3)
-        return target_sparsity
+        return (
+            final_sparsity
+            + (initial_sparsity - final_sparsity)
+            * (1.0 - ((self.now_epoch - start_epoch) / span)) ** 3
+        )
 
     def update_epoch(self, epoch):
         if epoch > 0:
@@ -175,7 +176,7 @@ class FPGMPruner(Pruner):
         return masks
 
     def _get_min_gm_kernel_idx(self, weight, n):
-        assert len(weight.size()) in [3, 4]
+        assert len(weight.size()) in {3, 4}
 
         dist_list = []
         for out_i in range(weight.size(0)):

@@ -84,7 +84,7 @@ class HyperoptTunerTestCase(TestCase):
                 "_value": [0.0001, 0.001, 0.002, 0.005, 0.01]
             }
         }
-        out_y = dict()
+        out_y = {}
         vals = {
             'optimizer': {
                 '_index': 0,

@@ -59,14 +59,11 @@ class EarlyStopping:
         else:
             self.num_bad_epochs += 1
 
-        if self.num_bad_epochs >= self.patience:
-            return True
-
-        return False
+        return self.num_bad_epochs >= self.patience
 
     def _init_is_better(self, mode, min_delta, percentage):
         if mode not in {"min", "max"}:
-            raise ValueError("mode " + mode + " is unknown!")
+            raise ValueError(f"mode {mode} is unknown!")
         if not percentage:
             if mode == "min":
                 self.is_better = lambda a, best: a < best - min_delta

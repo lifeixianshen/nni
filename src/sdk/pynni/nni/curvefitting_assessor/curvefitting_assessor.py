@@ -58,7 +58,7 @@ class CurvefittingAssessor(Assessor):
         # Record the number of gap
         self.gap = gap
         # Record the number of intermediate result in the lastest judgment
-        self.last_judgment_num = dict()
+        self.last_judgment_num = {}
         # Record the best performance
         self.set_best_performance = False
         self.completed_best_performance = None
@@ -134,14 +134,13 @@ class CurvefittingAssessor(Assessor):
                     trial_job_id, self.trial_history
                 )
 
-            if self.higher_better:
-                if predict_y > standard_performance:
-                    return AssessResult.Good
-                return AssessResult.Bad
-            else:
-                if predict_y < standard_performance:
-                    return AssessResult.Good
-                return AssessResult.Bad
-
+            if (
+                self.higher_better
+                and predict_y > standard_performance
+                or not self.higher_better
+                and predict_y < standard_performance
+            ):
+                return AssessResult.Good
+            return AssessResult.Bad
         except Exception as exception:
             logger.exception('unrecognize exception in curvefitting_assessor %s', exception)

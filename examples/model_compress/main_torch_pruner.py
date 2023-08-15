@@ -49,8 +49,9 @@ def test(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
 
-    print('Loss: {}  Accuracy: {}%)\n'.format(
-        test_loss, 100 * correct / len(test_loader.dataset)))
+    print(
+        f'Loss: {test_loss}  Accuracy: {100 * correct / len(test_loader.dataset)}%)\n'
+    )
 
 
 def main():
@@ -88,7 +89,7 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
     for epoch in range(10):
         pruner.update_epoch(epoch)
-        print('# Epoch {} #'.format(epoch))
+        print(f'# Epoch {epoch} #')
         train(model, device, train_loader, optimizer)
         test(model, device, test_loader)
     pruner.export_model('model.pth', 'mask.pth', 'model.onnx', [1, 1, 28, 28])

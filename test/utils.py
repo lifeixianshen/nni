@@ -35,10 +35,10 @@ RED = '\33[31m'
 CLEAR = '\33[0m'
 
 REST_ENDPOINT = 'http://localhost:8080/api/v1/nni'
-EXPERIMENT_URL = REST_ENDPOINT + '/experiment'
-STATUS_URL = REST_ENDPOINT + '/check-status'
-TRIAL_JOBS_URL = REST_ENDPOINT + '/trial-jobs'
-METRICS_URL = REST_ENDPOINT + '/metric-data'
+EXPERIMENT_URL = f'{REST_ENDPOINT}/experiment'
+STATUS_URL = f'{REST_ENDPOINT}/check-status'
+TRIAL_JOBS_URL = f'{REST_ENDPOINT}/trial-jobs'
+METRICS_URL = f'{REST_ENDPOINT}/metric-data'
 
 def read_last_line(file_name):
     '''read last line of a file and return None if file not found'''
@@ -78,8 +78,7 @@ def setup_experiment(installed=True):
         os.environ['PYTHONPATH'] = pypath
 
 def get_experiment_id(experiment_url):
-    experiment_id = requests.get(experiment_url).json()['id']
-    return experiment_id
+    return requests.get(experiment_url).json()['id']
 
 def get_experiment_dir(experiment_url):
     '''get experiment root directory'''
@@ -109,21 +108,22 @@ def get_experiment_status(status_url):
 
 def get_succeeded_trial_num(trial_jobs_url):
     trial_jobs = requests.get(trial_jobs_url).json()
-    num_succeed = 0
-    for trial_job in trial_jobs:
-        if trial_job['status'] in ['SUCCEEDED', 'EARLY_STOPPED']:
-            num_succeed += 1
+    num_succeed = sum(
+        1
+        for trial_job in trial_jobs
+        if trial_job['status'] in ['SUCCEEDED', 'EARLY_STOPPED']
+    )
     print('num_succeed:', num_succeed)
     return num_succeed
 
 def get_failed_trial_jobs(trial_jobs_url):
     '''Return failed trial jobs'''
     trial_jobs = requests.get(trial_jobs_url).json()
-    failed_jobs = []
-    for trial_job in trial_jobs:
-        if trial_job['status'] in ['FAILED']:
-            failed_jobs.append(trial_job)
-    return failed_jobs
+    return [
+        trial_job
+        for trial_job in trial_jobs
+        if trial_job['status'] in ['FAILED']
+    ]
 
 def print_failed_job_log(training_service, trial_jobs_url):
     '''Print job log of FAILED trial jobs'''

@@ -38,14 +38,16 @@ def create_model(samples_x, samples_y_aggregation, percentage_goodbatch=0.34):
     # Sorts so that we can get the top samples
     samples = sorted(samples, key=itemgetter(-1))
     samples_goodbatch_size = int(len(samples) * percentage_goodbatch)
-    samples_goodbatch = samples[0:samples_goodbatch_size]
+    samples_goodbatch = samples[:samples_goodbatch_size]
     samples_badbatch = samples[samples_goodbatch_size:]
 
-    samples_x_goodbatch = [sample_goodbatch[0:-1]
-                           for sample_goodbatch in samples_goodbatch]
+    samples_x_goodbatch = [
+        sample_goodbatch[:-1] for sample_goodbatch in samples_goodbatch
+    ]
     #samples_y_goodbatch = [sample_goodbatch[-1] for sample_goodbatch in samples_goodbatch]
-    samples_x_badbatch = [sample_badbatch[0:-1]
-                          for sample_badbatch in samples_badbatch]
+    samples_x_badbatch = [
+        sample_badbatch[:-1] for sample_badbatch in samples_badbatch
+    ]
 
     # === Trains GMM clustering models === #
     #sys.stderr.write("[%s] Train GMM's GMM model\n" % (os.path.basename(__file__)))
@@ -56,7 +58,7 @@ def create_model(samples_x, samples_y_aggregation, percentage_goodbatch=0.34):
     bgmm_goodbatch.fit(samples_x_goodbatch)
     bgmm_badbatch.fit(samples_x_badbatch)
 
-    model = {}
-    model['clusteringmodel_good'] = bgmm_goodbatch
-    model['clusteringmodel_bad'] = bgmm_badbatch
-    return model
+    return {
+        'clusteringmodel_good': bgmm_goodbatch,
+        'clusteringmodel_bad': bgmm_badbatch,
+    }

@@ -48,8 +48,9 @@ def test(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
 
-    print('Loss: {}  Accuracy: {}%)\n'.format(
-        test_loss, 100 * correct / len(test_loader.dataset)))
+    print(
+        f'Loss: {test_loss}  Accuracy: {100 * correct / len(test_loader.dataset)}%)\n'
+    )
 
 def main():
     torch.manual_seed(0)
@@ -64,7 +65,7 @@ def main():
         batch_size = 1000, shuffle = True)
 
     model = Mnist()
-    
+
     '''you can change this to DoReFaQuantizer to implement it
     DoReFaQuantizer(configure_list).compress(model)
     '''
@@ -73,11 +74,11 @@ def main():
     quantizer.compress()
     # you can also use compress(model) method
     # like thaht quantizer.compress(model)
-    
+
 
     optimizer = torch.optim.SGD(model.parameters(), lr = 0.01, momentum = 0.5)
     for epoch in range(10):
-        print('# Epoch {} #'.format(epoch))
+        print(f'# Epoch {epoch} #')
         train(model, device, train_loader, optimizer)
         test(model, device, test_loader)
 

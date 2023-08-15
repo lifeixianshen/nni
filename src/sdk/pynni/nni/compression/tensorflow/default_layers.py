@@ -22,7 +22,11 @@ def get_op_type(layer_type):
         return None
 
 def get_weight_index(op_type):
-    for k in supported_layers:
-        if supported_layers[k][0] == op_type:
-            return supported_layers[k][1]
-    return None
+    return next(
+        (
+            supported_layers[k][1]
+            for k in supported_layers
+            if supported_layers[k][0] == op_type
+        ),
+        None,
+    )

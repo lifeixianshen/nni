@@ -74,14 +74,15 @@ class Experiments:
 
     def add_experiment(self, expId, port, time, file_name, platform, experiment_name):
         '''set {key:value} paris to self.experiment'''
-        self.experiments[expId] = {}
-        self.experiments[expId]['port'] = port
-        self.experiments[expId]['startTime'] = time
-        self.experiments[expId]['endTime'] = 'N/A'
-        self.experiments[expId]['status'] = 'INITIALIZED'
-        self.experiments[expId]['fileName'] = file_name
-        self.experiments[expId]['platform'] = platform
-        self.experiments[expId]['experimentName'] = experiment_name
+        self.experiments[expId] = {
+            'port': port,
+            'startTime': time,
+            'endTime': 'N/A',
+            'status': 'INITIALIZED',
+            'fileName': file_name,
+            'platform': platform,
+            'experimentName': experiment_name,
+        }
         self.write_file()
 
     def update_experiment(self, expId, key, value):

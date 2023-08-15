@@ -74,10 +74,7 @@ def create_bracket_parameter_id(brackets_id, brackets_curr_decay, increased_id=-
     """
     if increased_id == -1:
         increased_id = str(create_parameter_id())
-    params_id = '_'.join([str(brackets_id),
-                          str(brackets_curr_decay),
-                          increased_id])
-    return params_id
+    return '_'.join([str(brackets_id), str(brackets_curr_decay), increased_id])
 
 
 class Bracket:
@@ -192,7 +189,7 @@ class Bracket:
             next_n, next_r = self.get_n_r()
             logger.debug('bracket %s next round %s, next_n=%d, next_r=%d',
                          self.s, self.i, next_n, next_r)
-            hyper_configs = dict()
+            hyper_configs = {}
             for k in range(next_n):
                 params_id = sorted_perf[k][0]
                 params = self.hyper_configs[i][params_id]
@@ -221,7 +218,7 @@ class Bracket:
         """
         global _KEY
         assert self.i == 0
-        hyperparameter_configs = dict()
+        hyperparameter_configs = {}
         for _ in range(num):
             params_id = create_bracket_parameter_id(self.s, self.i)
             params = config_generator.get_config(r)
@@ -241,7 +238,7 @@ class Bracket:
             the generated hyperconfigs
         """
         self.hyper_configs.append(hyper_configs)
-        self.configs_perf.append(dict())
+        self.configs_perf.append({})
         self.num_finished_configs.append(0)
         self.num_configs_to_run.append(len(hyper_configs))
         self.increase_i()
@@ -322,10 +319,10 @@ class BOHB(MsgDispatcherBase):
         self.curr_s = self.s_max
         # In this case, tuner increases self.credit to issue a trial config sometime later.
         self.credit = 0
-        self.brackets = dict()
+        self.brackets = {}
         self.search_space = None
         # [key, value] = [parameter_id, parameter]
-        self.parameters = dict()
+        self.parameters = {}
 
         # config generator
         self.cg = None
@@ -333,7 +330,7 @@ class BOHB(MsgDispatcherBase):
         # record the latest parameter_id of the trial job trial_job_id.
         # if there is no running parameter_id, self.job_id_para_id_map[trial_job_id] == None
         # new trial job is added to this dict and finished trial job is removed from it.
-        self.job_id_para_id_map = dict()
+        self.job_id_para_id_map = {}
         # record the unsatisfied parameter request from trial jobs
         self.unsatisfied_jobs = []
 
@@ -475,42 +472,41 @@ class BOHB(MsgDispatcherBase):
             if _type == 'choice':
                 cs.add_hyperparameter(CSH.CategoricalHyperparameter(
                     var, choices=search_space[var]["_value"]))
+            elif _type == 'lognormal':
+                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
+                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2],
+                    log=True))
+            elif _type == 'loguniform':
+                cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
+                    var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1],
+                    log=True))
+            elif _type == 'normal':
+                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
+                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2]))
+            elif _type == 'qlognormal':
+                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
+                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2],
+                    q=search_space[var]["_value"][3], log=True))
+            elif _type == 'qloguniform':
+                cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
+                    var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1],
+                    q=search_space[var]["_value"][2], log=True))
+            elif _type == 'qnormal':
+                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
+                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2],
+                    q=search_space[var]["_value"][3]))
+            elif _type == 'quniform':
+                cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
+                    var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1],
+                    q=search_space[var]["_value"][2]))
             elif _type == 'randint':
                 cs.add_hyperparameter(CSH.UniformIntegerHyperparameter(
                     var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1] - 1))
             elif _type == 'uniform':
                 cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
                     var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1]))
-            elif _type == 'quniform':
-                cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
-                    var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1],
-                    q=search_space[var]["_value"][2]))
-            elif _type == 'loguniform':
-                cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
-                    var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1],
-                    log=True))
-            elif _type == 'qloguniform':
-                cs.add_hyperparameter(CSH.UniformFloatHyperparameter(
-                    var, lower=search_space[var]["_value"][0], upper=search_space[var]["_value"][1],
-                    q=search_space[var]["_value"][2], log=True))
-            elif _type == 'normal':
-                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
-                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2]))
-            elif _type == 'qnormal':
-                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
-                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2],
-                    q=search_space[var]["_value"][3]))
-            elif _type == 'lognormal':
-                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
-                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2],
-                    log=True))
-            elif _type == 'qlognormal':
-                cs.add_hyperparameter(CSH.NormalFloatHyperparameter(
-                    var, mu=search_space[var]["_value"][1], sigma=search_space[var]["_value"][2],
-                    q=search_space[var]["_value"][3], log=True))
             else:
-                raise ValueError(
-                    'unrecognized type in search_space, type is {}'.format(_type))
+                raise ValueError(f'unrecognized type in search_space, type is {_type}')
 
         self.search_space = cs
 
@@ -592,10 +588,7 @@ class BOHB(MsgDispatcherBase):
         else:
             assert 'value' in data
             value = extract_scalar_reward(data['value'])
-            if self.optimize_mode is OptimizeMode.Maximize:
-                reward = -value
-            else:
-                reward = value
+            reward = -value if self.optimize_mode is OptimizeMode.Maximize else value
             assert 'parameter_id' in data
             s, i, _ = data['parameter_id'].split('_')
             logger.debug('bracket id = %s, metrics value = %s, type = %s', s, value, data['type'])
@@ -624,8 +617,7 @@ class BOHB(MsgDispatcherBase):
                 self.brackets[s].set_config_perf(
                     int(i), data['parameter_id'], data['sequence'], value)
             else:
-                raise ValueError(
-                    'Data type not supported: {}'.format(data['type']))
+                raise ValueError(f"Data type not supported: {data['type']}")
 
     def handle_add_customized_trial(self, data):
         pass
@@ -655,7 +647,7 @@ class BOHB(MsgDispatcherBase):
                 logger.info("Useless trial data, value is %s, skip this trial data.", _value)
                 continue
             budget_exist_flag = False
-            barely_params = dict()
+            barely_params = {}
             for keys in _params:
                 if keys == _KEY:
                     _budget = _params[keys]
@@ -665,9 +657,6 @@ class BOHB(MsgDispatcherBase):
             if not budget_exist_flag:
                 _budget = self.max_budget
                 logger.info("Set \"TRIAL_BUDGET\" value to %s (max budget)", self.max_budget)
-            if self.optimize_mode is OptimizeMode.Maximize:
-                reward = -_value
-            else:
-                reward = _value
+            reward = -_value if self.optimize_mode is OptimizeMode.Maximize else _value
             self.cg.new_result(loss=reward, budget=_budget, parameters=barely_params, update_model=True)
         logger.info("Successfully import tuning data to BOHB advisor.")

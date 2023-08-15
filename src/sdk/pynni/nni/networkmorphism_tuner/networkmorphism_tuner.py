@@ -119,7 +119,7 @@ class NetworkMorphismTuner(Tuner):
         self.default_model_len = default_model_len
         self.default_model_width = default_model_width
 
-        self.search_space = dict()
+        self.search_space = {}
 
 
     def update_search_space(self, search_space):
@@ -152,7 +152,7 @@ class NetworkMorphismTuner(Tuner):
         graph, father_id, model_id = self.training_queue.pop(0)
 
         # from graph to json
-        json_model_path = os.path.join(self.path, str(model_id) + ".json")
+        json_model_path = os.path.join(self.path, f"{str(model_id)}.json")
         json_out = graph_to_json(graph, json_model_path)
         self.total_data[parameter_id] = (json_out, father_id, model_id)
 
@@ -263,9 +263,8 @@ class NetworkMorphismTuner(Tuner):
         ret = {"model_id": model_id, "metric_value": metric_value}
         self.history.append(ret)
         if model_id == self.get_best_model_id():
-            file = open(os.path.join(self.path, "best_model.txt"), "w")
-            file.write("best model: " + str(model_id))
-            file.close()
+            with open(os.path.join(self.path, "best_model.txt"), "w") as file:
+                file.write(f"best model: {str(model_id)}")
         return ret
 
 
@@ -295,11 +294,10 @@ class NetworkMorphismTuner(Tuner):
             the model graph representation
         """
 
-        with open(os.path.join(self.path, str(model_id) + ".json")) as fin:
+        with open(os.path.join(self.path, f"{str(model_id)}.json")) as fin:
             json_str = fin.read().replace("\n", "")
 
-        load_model = json_to_graph(json_str)
-        return load_model
+        return json_to_graph(json_str)
 
     def load_best_model(self):
         """
@@ -326,10 +324,14 @@ class NetworkMorphismTuner(Tuner):
         float
              the model metric
         """
-        for item in self.history:
-            if item["model_id"] == model_id:
-                return item["metric_value"]
-        return None
+        return next(
+            (
+                item["metric_value"]
+                for item in self.history
+                if item["model_id"] == model_id
+            ),
+            None,
+        )
 
     def import_data(self, data):
         pass

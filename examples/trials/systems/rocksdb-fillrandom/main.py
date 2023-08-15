@@ -26,7 +26,7 @@ def run(**parameters):
     '''Run rocksdb benchmark and return throughput'''
     bench_type = parameters['benchmarks']
     # recover args
-    args = ["--{}={}".format(k, v) for k, v in parameters.items()]
+    args = [f"--{k}={v}" for k, v in parameters.items()]
     # subprocess communicate
     process = subprocess.Popen(['db_bench'] + args, stdout=subprocess.PIPE)
     out, err = process.communicate()
@@ -35,12 +35,10 @@ def run(**parameters):
 
     match_lines = []
     for line in lines:
-        # find the line with matched str
         if bench_type not in line:
             continue
-        else:
-            match_lines.append(line)
-            break
+        match_lines.append(line)
+        break
 
     results = {}
     for line in match_lines:

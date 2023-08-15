@@ -54,7 +54,7 @@ class GridSearchTuner(Tuner):
     def __init__(self):
         self.count = -1
         self.expanded_search_space = []
-        self.supplement_data = dict()
+        self.supplement_data = {}
 
     def _json2parameter(self, ss_spec):
         """
@@ -75,7 +75,7 @@ class GridSearchTuner(Tuner):
             if '_type' in ss_spec.keys():
                 _type = ss_spec['_type']
                 _value = ss_spec['_value']
-                chosen_params = list()
+                chosen_params = []
                 if _type == 'choice':
                     for value in _value:
                         choice = self._json2parameter(value)
@@ -88,14 +88,15 @@ class GridSearchTuner(Tuner):
                 elif _type == 'randint':
                     chosen_params = self._parse_randint(_value)
                 else:
-                    raise RuntimeError("Not supported type: %s" % _type)
+                    raise RuntimeError(f"Not supported type: {_type}")
             else:
-                chosen_params = dict()
-                for key in ss_spec.keys():
-                    chosen_params[key] = self._json2parameter(ss_spec[key])
+                chosen_params = {
+                    key: self._json2parameter(ss_spec[key])
+                    for key in ss_spec.keys()
+                }
                 return self._expand_parameters(chosen_params)
         elif isinstance(ss_spec, list):
-            chosen_params = list()
+            chosen_params = []
             for subspec in ss_spec[1:]:
                 choice = self._json2parameter(subspec)
                 if isinstance(choice, list):
@@ -141,7 +142,7 @@ class GridSearchTuner(Tuner):
         key = list(para)[0]
         values = para.pop(key)
         rest_para = self._expand_parameters(para)
-        ret_para = list()
+        ret_para = []
         for val in values:
             for config in rest_para:
                 config[key] = val

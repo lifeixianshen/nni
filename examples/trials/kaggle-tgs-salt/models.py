@@ -144,7 +144,7 @@ class UNetResNetV4(nn.Module):
     def __init__(self, encoder_depth, num_classes=1, num_filters=32, dropout_2d=0.4,
                  pretrained=True, is_deconv=True):
         super(UNetResNetV4, self).__init__()
-        self.name = 'UNetResNetV4_'+str(encoder_depth)
+        self.name = f'UNetResNetV4_{str(encoder_depth)}'
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
@@ -219,15 +219,12 @@ class UNetResNetV4(nn.Module):
 
         params1 = []
         for x in group1:
-            for p in x.parameters():
-                params1.append(p)
-
+            params1.extend(iter(x.parameters()))
         param_group1 = {'params': params1, 'lr': base_lr / 5}
 
         params2 = []
         for x in group2:
-            for p in x.parameters():
-                params2.append(p)
+            params2.extend(iter(x.parameters()))
         param_group2 = {'params': params2, 'lr': base_lr}
 
         return [param_group1, param_group2]
@@ -264,7 +261,7 @@ class DecoderBlockV5(nn.Module):
 class UNetResNetV5(nn.Module):
     def __init__(self, encoder_depth, num_classes=1, num_filters=32, dropout_2d=0.5):
         super(UNetResNetV5, self).__init__()
-        self.name = 'UNetResNetV5_'+str(encoder_depth)
+        self.name = f'UNetResNetV5_{str(encoder_depth)}'
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
@@ -336,7 +333,7 @@ class UNetResNetV6(nn.Module):
     def __init__(self, encoder_depth, num_filters=32, dropout_2d=0.5):
         super(UNetResNetV6, self).__init__()
         assert encoder_depth == 34, 'UNetResNetV6: only 34 layers is supported!'
-        self.name = 'UNetResNetV6_'+str(encoder_depth)
+        self.name = f'UNetResNetV6_{str(encoder_depth)}'
         self.dropout_2d = dropout_2d
 
         self.resnet, bottom_channel_nr = create_resnet(encoder_depth)
@@ -444,7 +441,7 @@ class UNet7(nn.Module):
     def __init__(self, encoder_depth, num_classes=1, num_filters=32, dropout_2d=0.5):
         super(UNet7, self).__init__()
         nf = num_filters
-        self.name = 'UNet7_'+str(encoder_depth)+'_nf'+str(nf)
+        self.name = f'UNet7_{str(encoder_depth)}_nf{str(nf)}'
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
@@ -533,7 +530,7 @@ class UNet8(nn.Module):
     def __init__(self, encoder_depth, num_classes=1, num_filters=32, dropout_2d=0.5):
         super(UNet8, self).__init__()
         nf = num_filters
-        self.name = 'UNet8_'+str(encoder_depth)+'_nf'+str(nf)
+        self.name = f'UNet8_{str(encoder_depth)}_nf{str(nf)}'
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 

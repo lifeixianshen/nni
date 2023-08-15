@@ -183,7 +183,7 @@ class GeneralChild(Model):
             def get_layer_id():
                 global layer_id
                 layer_id += 1
-                return 'layer_' + str(layer_id)
+                return f'layer_{layer_id}'
 
             def conv3(inputs):
                 # res_layers is pre_layers that are chosen to form skip connection
@@ -365,7 +365,7 @@ class GeneralChild(Model):
         tf_variables = [var
                         for var in tf.trainable_variables() if var.name.startswith(self.name)]
         self.num_vars = count_model_params(tf_variables)
-        print("Model has {} params".format(self.num_vars))
+        print(f"Model has {self.num_vars} params")
 
         self.global_step = tf.Variable(
             0, dtype=tf.int32, trainable=False, name="global_step")

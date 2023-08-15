@@ -61,12 +61,7 @@ class FocalLoss2d(nn.Module):
         prob       = torch.clamp(prob,1e-8,1-1e-8)
         batch_loss = - class_weight *(torch.pow((1-prob), self.gamma))*prob.log()
 
-        if self.size_average:
-            loss = batch_loss.mean()
-        else:
-            loss = batch_loss
-
-        return loss
+        return batch_loss.mean() if self.size_average else batch_loss
 
 
 if __name__ == '__main__':

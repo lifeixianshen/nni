@@ -101,9 +101,7 @@ class Compressor:
             if config.get('op_names') and layer.name not in config['op_names']:
                 continue
             ret = config
-        if ret is None or ret.get('exclude'):
-            return None
-        return ret
+        return None if ret is None or ret.get('exclude') else ret
 
     def update_epoch(self, epoch):
         """

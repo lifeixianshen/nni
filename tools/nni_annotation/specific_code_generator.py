@@ -60,7 +60,7 @@ def parse_annotation_mutable_layers(code, lineno):
                     call_name = astor.to_source(call).strip()
                     if call_name == para_cfg[mutable_id][mutable_layer_id]['chosen_layer']:
                         func_call = call
-                        assert not call.args, 'Number of args without keyword should be zero'
+                        assert not func_call.args, 'Number of args without keyword should be zero'
                         break
                 fields['layer_choice'] = True
             elif k.id == 'fixed_inputs':
@@ -179,7 +179,7 @@ def convert_args_to_dict(call, with_lambda=False):
     """Convert all args to a dict such that every key and value in the dict is the same as the value of the arg.
     Return the AST Call node with only one arg that is the dictionary
     """
-    keys, values = list(), list()
+    keys, values = [], []
     for arg in call.args:
         if type(arg) in [ast.Str, ast.Num]:
             arg_value = arg
@@ -258,9 +258,7 @@ class FuncReplacer(ast.NodeTransformer):
         self.target = target
 
     def visit_Call(self, node):  # pylint: disable=invalid-name
-        if ast.dump(node, False) in self.funcs:
-            return self.target
-        return node
+        return self.target if ast.dump(node, False) in self.funcs else node
 
 
 class Transformer(ast.NodeTransformer):
@@ -364,7 +362,4 @@ def parse(code, para, module):
     except AssertionError as exc:
         raise RuntimeError('%d: %s' % (ast_tree.last_line, exc.args[0]))
 
-    if not transformer.annotated:
-        return None
-
-    return astor.to_source(ast_tree)
+    return None if not transformer.annotated else astor.to_source(ast_tree)

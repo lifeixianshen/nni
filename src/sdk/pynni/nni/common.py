@@ -42,7 +42,7 @@ class _LoggerFileWrapper(TextIOBase):
     def write(self, s):
         if s != '\n':
             cur_time = datetime.now().strftime(_time_format)
-            self.file.write('[{}] PRINT '.format(cur_time) + s + '\n')
+            self.file.write(f'[{cur_time}] PRINT {s}' + '\n')
             self.file.flush()
         return len(s)
 

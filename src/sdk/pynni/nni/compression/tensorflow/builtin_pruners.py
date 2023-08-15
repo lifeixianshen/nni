@@ -89,10 +89,9 @@ class AGP_Pruner(Pruner):
         span = int(((end_epoch - start_epoch - 1) // freq) * freq)
         assert span > 0
         base = tf.cast(now_epoch - start_epoch, tf.float32) / span
-        target_sparsity = (final_sparsity +
-                           (initial_sparsity - final_sparsity) *
-                           (tf.pow(1.0 - base, 3)))
-        return target_sparsity
+        return final_sparsity + (initial_sparsity - final_sparsity) * (
+            tf.pow(1.0 - base, 3)
+        )
 
     def update_epoch(self, epoch, sess):
         sess.run(self.assign_handler)

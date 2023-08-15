@@ -47,11 +47,7 @@ def to_wider_graph(graph):
 
     for layer_id in wider_layers:
         layer = graph.layer_list[layer_id]
-        if is_layer(layer, "Conv"):
-            n_add = layer.filters
-        else:
-            n_add = layer.units
-
+        n_add = layer.filters if is_layer(layer, "Conv") else layer.units
         graph.to_wider_model(layer_id, n_add)
     return graph
 
@@ -66,9 +62,10 @@ def to_skip_connection_graph(graph):
     for skip_type in sorted(
             [NetworkDescriptor.ADD_CONNECT, NetworkDescriptor.CONCAT_CONNECT]):
         for index_a in range(len(weighted_layer_ids)):
-            for index_b in range(len(weighted_layer_ids))[index_a + 1:]:
-                valid_connection.append((index_a, index_b, skip_type))
-
+            valid_connection.extend(
+                (index_a, index_b, skip_type)
+                for index_b in range(len(weighted_layer_ids))[index_a + 1 :]
+            )
     if not valid_connection:
         return graph
     for index_a, index_b, skip_type in sample(valid_connection, 1):
@@ -110,26 +107,24 @@ def create_new_layer(layer, n_dim):
         layer_class = sample(conv_deeper_classes, 1)[0]
 
     if layer_class == StubDense:
-        new_layer = StubDense(input_shape[0], input_shape[0])
+        return StubDense(input_shape[0], input_shape[0])
 
     elif layer_class == get_dropout_class(n_dim):
-        new_layer = layer_class(Constant.DENSE_DROPOUT_RATE)
+        return layer_class(Constant.DENSE_DROPOUT_RATE)
 
     elif layer_class == get_conv_class(n_dim):
-        new_layer = layer_class(
+        return layer_class(
             input_shape[-1], input_shape[-1], sample((1, 3, 5), 1)[0], stride=1
         )
 
     elif layer_class == get_batch_norm_class(n_dim):
-        new_layer = layer_class(input_shape[-1])
+        return layer_class(input_shape[-1])
 
     elif layer_class == get_pooling_class(n_dim):
-        new_layer = layer_class(sample((1, 3, 5), 1)[0])
+        return layer_class(sample((1, 3, 5), 1)[0])
 
     else:
-        new_layer = layer_class()
-
-    return new_layer
+        return layer_class()
 
 
 def to_deeper_graph(graph):
@@ -155,9 +150,7 @@ def legal_graph(graph):
 
     descriptor = graph.extract_descriptor()
     skips = descriptor.skip_connections
-    if len(skips) != len(set(skips)):
-        return False
-    return True
+    return len(skips) == len(set(skips))
 
 
 def transform(graph):

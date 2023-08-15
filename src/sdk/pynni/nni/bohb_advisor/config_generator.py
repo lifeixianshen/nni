@@ -100,15 +100,13 @@ class CG_BOHB:
         # store precomputed probs for the categorical parameters
         self.cat_probs = []
 
-        self.configs = dict()
-        self.losses = dict()
-        self.good_config_rankings = dict()
-        self.kde_models = dict()
+        self.configs = {}
+        self.losses = {}
+        self.good_config_rankings = {}
+        self.kde_models = {}
 
     def largest_budget_with_model(self):
-        if not self.kde_models:
-            return -float('inf')
-        return max(self.kde_models.keys())
+        return -float('inf') if not self.kde_models else max(self.kde_models.keys())
 
     def sample_from_largest_budget(self, info_dict):
         """We opted for a single multidimensional KDE compared to the
@@ -142,7 +140,7 @@ class CG_BOHB:
         kde_good = self.kde_models[budget]['good']
         kde_bad = self.kde_models[budget]['bad']
 
-        for i in range(self.num_samples):
+        for _ in range(self.num_samples):
             idx = np.random.randint(0, len(kde_good.data))
             datum = kde_good.data[idx]
             vector = []
@@ -153,11 +151,10 @@ class CG_BOHB:
                 if t == 0:
                     bw = self.bw_factor*bw
                     vector.append(sps.truncnorm.rvs(-m/bw, (1-m)/bw, loc=m, scale=bw))
+                elif np.random.rand() < (1-bw):
+                    vector.append(int(m))
                 else:
-                    if np.random.rand() < (1-bw):
-                        vector.append(int(m))
-                    else:
-                        vector.append(np.random.randint(t))
+                    vector.append(np.random.randint(t))
             val = minimize_me(vector)
 
             if not np.isfinite(val):
@@ -242,18 +239,16 @@ class CG_BOHB:
             nan_indices = np.argwhere(np.isnan(datum)).flatten()
             while np.any(nan_indices):
                 nan_idx = nan_indices[0]
-                valid_indices = np.argwhere(np.isfinite(array[:, nan_idx])).flatten()
-                if valid_indices:
+                if valid_indices := np.argwhere(
+                    np.isfinite(array[:, nan_idx])
+                ).flatten():
                     # pick one of them at random and overwrite all NaN values
                     row_idx = np.random.choice(valid_indices)
                     datum[nan_indices] = array[row_idx, nan_indices]
                 else:
                     # no good point in the data has this value activated, so fill it with a valid but random value
                     t = self.vartypes[nan_idx]
-                    if t == 0:
-                        datum[nan_idx] = np.random.rand()
-                    else:
-                        datum[nan_idx] = np.random.randint(t)
+                    datum[nan_idx] = np.random.rand() if t == 0 else np.random.randint(t)
                 nan_indices = np.argwhere(np.isnan(datum)).flatten()
             return_array[i, :] = datum
         return return_array

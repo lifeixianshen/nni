@@ -80,7 +80,8 @@ def generate_pcs(nni_search_space_content):
         choice_len = len(categories)
         if key in categorical_dict:
             raise RuntimeError(
-                '%s has already existed, please make sure search space has no duplicate key.' % key)
+                f'{key} has already existed, please make sure search space has no duplicate key.'
+            )
         categorical_dict[key] = search_space[key]['_value']
         fd.write('%s categorical {%s} [0]\n' % (key, ','.join(map(str, range(choice_len)))))
 
@@ -112,14 +113,14 @@ def generate_pcs(nni_search_space_content):
                             else:
                                 pcs_fd.write('%s real [%s, %s] [%s]\n' % (key, low, high, low))
                         elif search_space[key]['_type'] == 'quniform':
-                            low, high, q = search_space[key]['_value'][0:3]
+                            low, high, q = search_space[key]['_value'][:3]
                             vals = np.clip(np.arange(np.round(low / q), np.round(high / q) + 1) * q, low, high).tolist()
                             pcs_fd.write('%s ordinal {%s} [%s]\n' % (
                                 key,
                                 json.dumps(vals)[1:-1],
                                 json.dumps(vals[0])))
                         else:
-                            raise RuntimeError('unsupported _type %s' % search_space[key]['_type'])
+                            raise RuntimeError(f"unsupported _type {search_space[key]['_type']}")
                     except:
                         raise RuntimeError('_type or _value error.')
         else:

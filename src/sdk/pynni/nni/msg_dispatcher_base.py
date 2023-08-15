@@ -76,8 +76,10 @@ class MsgDispatcherBase(Recoverable):
             if multi_thread_enabled():
                 result = self.pool.map_async(self.process_command_thread, [(command, data)])
                 self.thread_results.append(result)
-                if any([thread_result.ready() and not thread_result.successful() for thread_result in
-                        self.thread_results]):
+                if any(
+                    thread_result.ready() and not thread_result.successful()
+                    for thread_result in self.thread_results
+                ):
                     _logger.debug('Caught thread exception')
                     break
             else:
@@ -141,8 +143,6 @@ class MsgDispatcherBase(Recoverable):
             except Exception as e:
                 _logger.exception(str(e))
                 raise
-        else:
-            pass
 
     def process_command(self, command, data):
         _logger.debug('process_command: command: [%s], data: [%s]', command, data)
@@ -162,7 +162,7 @@ class MsgDispatcherBase(Recoverable):
             CommandType.Ping: self.handle_ping,
         }
         if command not in command_handlers:
-            raise AssertionError('Unsupported command: {}'.format(command))
+            raise AssertionError(f'Unsupported command: {command}')
         command_handlers[command](data)
 
     def handle_ping(self, data):

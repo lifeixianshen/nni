@@ -66,12 +66,12 @@ class BatchTuner(Tuner):
         None or list
             If valid, return candidate values; else return None.
         """
-        if not len(search_space) == 1:
+        if len(search_space) != 1:
             raise RuntimeError('BatchTuner only supprt one combined-paramreters key.')
 
         for param in search_space:
             param_type = search_space[param][TYPE]
-            if not param_type == CHOICE:
+            if param_type != CHOICE:
                 raise RuntimeError('BatchTuner only supprt \
                                     one combined-paramreters type is choice.')
 

@@ -157,7 +157,7 @@ if __name__ == '__main__':
         tuner_params = nni.get_next_parameter()
         logger.debug(tuner_params)
         params = vars(get_params())
-        params.update(tuner_params)
+        params |= tuner_params
         main(params)
     except Exception as exception:
         logger.exception(exception)

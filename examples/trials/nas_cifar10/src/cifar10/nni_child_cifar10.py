@@ -14,7 +14,7 @@ from src.cifar10_flags import FLAGS
 def build_logger(log_name):
     logger = logging.getLogger(log_name)
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler(log_name+'.log')
+    fh = logging.FileHandler(f'{log_name}.log')
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
     return logger
@@ -25,7 +25,7 @@ logger = build_logger("nni_child_cifar10")
 
 def build_trial(images, labels, ChildClass):
     '''Build child class'''
-    child_model = ChildClass(
+    return ChildClass(
         images,
         labels,
         use_aux_heads=FLAGS.child_use_aux_heads,
@@ -55,15 +55,13 @@ def build_trial(images, labels, ChildClass):
         optim_algo="momentum",
         sync_replicas=FLAGS.child_sync_replicas,
         num_aggregate=FLAGS.child_num_aggregate,
-        num_replicas=FLAGS.child_num_replicas
+        num_replicas=FLAGS.child_num_replicas,
     )
-
-    return child_model
 
 
 def get_child_ops(child_model):
     '''Assemble child op to a dict'''
-    child_ops = {
+    return {
         "global_step": child_model.global_step,
         "loss": child_model.loss,
         "train_op": child_model.train_op,
@@ -75,7 +73,6 @@ def get_child_ops(child_model):
         "eval_every": child_model.num_train_batches * FLAGS.eval_every_epochs,
         "eval_func": child_model.eval_once,
     }
-    return child_ops
 
 
 class NASTrial():
@@ -115,8 +112,7 @@ class NASTrial():
         ]
         loss, lr, gn, tr_acc, _ = self.sess.run(run_ops)
         global_step = self.sess.run(self.child_ops["global_step"])
-        log_string = ""
-        log_string += "ch_step={:<6d}".format(global_step)
+        log_string = "" + "ch_step={:<6d}".format(global_step)
         log_string += " loss={:<8.6f}".format(loss)
         log_string += " lr={:<8.4f}".format(lr)
         log_string += " |g|={:<8.4f}".format(gn)
@@ -144,12 +140,10 @@ def main(_):
     logger.debug("-" * 80)
 
     if not os.path.isdir(FLAGS.output_dir):
-        logger.debug(
-            "Path {} does not exist. Creating.".format(FLAGS.output_dir))
+        logger.debug(f"Path {FLAGS.output_dir} does not exist. Creating.")
         os.makedirs(FLAGS.output_dir)
     elif FLAGS.reset_output_dir:
-        logger.debug(
-            "Path {} exists. Remove and remake.".format(FLAGS.output_dir))
+        logger.debug(f"Path {FLAGS.output_dir} exists. Remove and remake.")
         shutil.rmtree(FLAGS.output_dir)
         os.makedirs(FLAGS.output_dir)
     logger.debug("-" * 80)

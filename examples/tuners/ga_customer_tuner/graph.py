@@ -38,15 +38,15 @@ class Layer(object):
         else:
             print(type)
     def set_size(self, id, size):
-        if self.type == LayerType.attention.value:
-            if self.input[0] == id:
+        if self.input[0] == id:
+            if self.type == LayerType.attention.value:
                 self.size = size
         if self.type == LayerType.rnn.value:
             self.size = size
         if self.type == LayerType.self_attention.value:
             self.size = size
-        if self.type == LayerType.output.value:
-            if self.size != size:
+        if self.size != size:
+            if self.type == LayerType.output.value:
                 return False
         return True
 
@@ -55,8 +55,7 @@ class Layer(object):
             self.size = None
 
     def __str__(self):
-        return 'input:' + str(self.input) + ' output:' + str(self.output) + ' type:' + str(
-            self.type) + ' is_delete:' + str(self.is_delete) + ' size:' + str(self.size)
+        return f'input:{str(self.input)} output:{str(self.output)} type:{str(self.type)} is_delete:{str(self.is_delete)} size:{str(self.size)}'
 
 def graph_dumps(graph):
     return json.dumps(graph, default=lambda obj: obj.__dict__)
@@ -73,35 +72,26 @@ def graph_loads(js):
 
 class Graph(object):
     def __init__(self, max_layer_num, input, output, hide):
-        self.layers = []
+        self.layers = list(input)
         self.max_layer_num = max_layer_num
-
-        for layer in input:
-            self.layers.append(layer)
-        for layer in output:
-            self.layers.append(layer)
+        self.layers.extend(iter(output))
         if hide is not None:
-            for layer in hide:
-                self.layers.append(layer)
+            self.layers.extend(iter(hide))
         assert self.is_legal()
 
     def is_topology(self, layers=None):
-        if layers == None:
+        if layers is None:
             layers = self.layers
-        layers_nodle = []
         xx = []
-        for i in range(len(layers)):
-            if layers[i].is_delete == False:
-                layers_nodle.append(i)
+        layers_nodle = [i for i in range(len(layers)) if layers[i].is_delete == False]
         while True:
             flag_break = True
             layers_toremove = []
             for layer1 in layers_nodle:
-                flag_arrive = True
-                for layer2 in layers[layer1].input:
-                    if layer2 in layers_nodle:
-                        flag_arrive = False
-                if flag_arrive == True:
+                flag_arrive = all(
+                    layer2 not in layers_nodle for layer2 in layers[layer1].input
+                )
+                if flag_arrive:
                     for layer2 in layers[layer1].output:
                         if layers[layer2].set_size(layer1, layers[layer1].size) == False:  # Size is error
                             return False
@@ -113,21 +103,21 @@ class Graph(object):
             xx.append('|')
             if flag_break == True:
                 break
-        if len(layers_nodle) > 0:  # There is loop in graph || some layers can't to arrive
-            return False
-        return xx
+        return False if layers_nodle else xx
 
     def layer_num(self, layers=None):
-        if layers == None:
+        if layers is None:
             layers = self.layers
-        layer_num = 0
-        for layer in layers:
-            if layer.is_delete == False and layer.type != LayerType.input.value and layer.type != LayerType.output.value:
-                layer_num += 1
-        return layer_num
+        return sum(
+            1
+            for layer in layers
+            if layer.is_delete == False
+            and layer.type != LayerType.input.value
+            and layer.type != LayerType.output.value
+        )
 
     def is_legal(self, layers=None):
-        if layers == None:
+        if layers is None:
             layers = self.layers
 
         for layer in layers:
@@ -141,19 +131,14 @@ class Graph(object):
         if self.layer_num(layers) > self.max_layer_num:
             return False
 
-        if self.is_topology(layers) == False:  # There is loop in graph || some layers can't to arrive
-            return False
-
-        return True
+        return self.is_topology(layers) != False
 
     def mutation(self, only_add=False):
         types = []
         if self.layer_num() < self.max_layer_num:
-            types.append(0)
-            types.append(1)
+            types.extend((0, 1))
         if self.layer_num() > 0:
-            types.append(2)
-            types.append(3)
+            types.extend((2, 3))
         # 0 : add a layer , delete a edge
         # 1 : add a layer , change a edge
         # 2 : delete a layer, delete a edge
@@ -173,7 +158,10 @@ class Graph(object):
                         layers_in.append(layer1)
                     if layer.type != LayerType.input.value:
                         layers_out.append(layer1)
-                    if layer.type != LayerType.output.value and layer.type != LayerType.input.value:
+                    if layer.type not in [
+                        LayerType.output.value,
+                        LayerType.input.value,
+                    ]:
                         layers_del.append(layer1)
             if type <= 1:
                 new_id = len(layers)
@@ -218,11 +206,11 @@ class Graph(object):
                 cnt_try += 1
 
     def __str__(self):
-        info = ""
-        for id, layer in enumerate(self.layers):
-            if layer.is_delete == False:
-                info += 'id:%d ' % id + str(layer) + '\n'
-        return info
+        return "".join(
+            'id:%d ' % id + str(layer) + '\n'
+            for id, layer in enumerate(self.layers)
+            if layer.is_delete == False
+        )
 
 if __name__ == '__main__':
     graph = Graph(10,

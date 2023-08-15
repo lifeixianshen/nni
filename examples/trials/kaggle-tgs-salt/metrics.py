@@ -79,7 +79,7 @@ def intersection_over_union(y_true, y_pred):
 
 
 def intersection_over_union_thresholds(y_true, y_pred):
-    iouts = []
-    for y_t, y_p in list(zip(y_true, y_pred)):
-        iouts.append(compute_eval_metric(y_t, y_p))
+    iouts = [
+        compute_eval_metric(y_t, y_p) for y_t, y_p in list(zip(y_true, y_pred))
+    ]
     return np.mean(iouts)

@@ -246,7 +246,7 @@ def rnn(input_states, sequence_lengths, dropout_rate, is_training, num_units):
     xs = tf.transpose(input_states, perm=[1, 0, 2])
     for i in range(0, layer_cnt):
         xs = dropout(xs, dropout_rate, is_training)
-        with tf.variable_scope('layer_' + str(i)):
+        with tf.variable_scope(f'layer_{str(i)}'):
             cell_fw = XGRUCell(num_units)
             cell_bw = XGRUCell(num_units)
             outputs, _ = tf.nn.bidirectional_dynamic_rnn(
@@ -276,16 +276,15 @@ def graph_to_network(input1,
                      num_heads=1,
                      rnn_units=256):
     topology = graph.is_topology()
-    layers = dict()
-    layers_sequence_lengths = dict()
     num_units = input1.get_shape().as_list()[-1]
-    layers[0] = input1*tf.sqrt(tf.cast(num_units, tf.float32)) + \
-        positional_encoding(input1, scale=False, zero_pad=False)
+    layers = {
+        0: input1 * tf.sqrt(tf.cast(num_units, tf.float32))
+        + positional_encoding(input1, scale=False, zero_pad=False)
+    }
     layers[1] = input2*tf.sqrt(tf.cast(num_units, tf.float32))
     layers[0] = dropout(layers[0], dropout_rate, is_training)
     layers[1] = dropout(layers[1], dropout_rate, is_training)
-    layers_sequence_lengths[0] = input1_lengths
-    layers_sequence_lengths[1] = input2_lengths
+    layers_sequence_lengths = {0: input1_lengths, 1: input2_lengths}
     for _, topo_i in enumerate(topology):
         if topo_i == '|':
             continue

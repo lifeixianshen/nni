@@ -36,11 +36,11 @@ def json2space(x, oldy=None, name=NodeType.ROOT):
     Change search space from json format to hyperopt format
 
     """
-    y = list()
+    y = []
     if isinstance(x, dict):
         if NodeType.TYPE in x.keys():
             _type = x[NodeType.TYPE]
-            name = name + '-' + _type
+            name = f'{name}-{_type}'
             if _type == 'choice':
                 if oldy is not None:
                     _index = oldy[NodeType.INDEX]
@@ -51,7 +51,7 @@ def json2space(x, oldy=None, name=NodeType.ROOT):
             y.append(name)
         else:
             for key in x.keys():
-                y += json2space(x[key], oldy[key] if oldy else None, name+"[%s]" % str(key))
+                y += json2space(x[key], oldy[key] if oldy else None, f"{name}[{str(key)}]")
     elif isinstance(x, list):
         for i, x_i in enumerate(x):
             if isinstance(x_i, dict):
@@ -69,7 +69,7 @@ def json2parameter(x, is_rand, random_state, oldy=None, Rand=False, name=NodeTyp
         if NodeType.TYPE in x.keys():
             _type = x[NodeType.TYPE]
             _value = x[NodeType.VALUE]
-            name = name + '-' + _type
+            name = f'{name}-{_type}'
             Rand |= is_rand[name]
             if Rand is True:
                 if _type == 'choice':
@@ -90,18 +90,19 @@ def json2parameter(x, is_rand, random_state, oldy=None, Rand=False, name=NodeTyp
             else:
                 y = copy.deepcopy(oldy)
         else:
-            y = dict()
-            for key in x.keys():
-                y[key] = json2parameter(
+            y = {
+                key: json2parameter(
                     x[key],
                     is_rand,
                     random_state,
                     oldy[key] if oldy else None,
                     Rand,
-                    name + "[%s]" % str(key)
+                    f"{name}[{str(key)}]",
                 )
+                for key in x.keys()
+            }
     elif isinstance(x, list):
-        y = list()
+        y = []
         for i, x_i in enumerate(x):
             if isinstance(x_i, dict):
                 if NodeType.NAME not in x_i.keys():
@@ -151,8 +152,7 @@ class Individual:
         self.save_dir = save_dir
 
     def __str__(self):
-        return "info: " + str(self.info) + \
-            ", config :" + str(self.config) + ", result: " + str(self.result)
+        return f"info: {str(self.info)}, config :{str(self.config)}, result: {str(self.result)}"
 
     def mutation(self, config=None, info=None, save_dir=None):
         """
@@ -211,11 +211,7 @@ class EvolutionTuner(Tuner):
 
         self.random_state = np.random.RandomState()
         self.population = []
-        is_rand = dict()
-
-        for item in self.space:
-            is_rand[item] = True
-
+        is_rand = {item: True for item in self.space}
         for _ in range(self.population_size):
             config = json2parameter(
                 self.searchspace_json, is_rand, self.random_state)
@@ -238,13 +234,14 @@ class EvolutionTuner(Tuner):
         if not self.population:
             raise RuntimeError('The population is empty')
 
-        pos = -1
-
-        for i in range(len(self.population)):
-            if self.population[i].result is None:
-                pos = i
-                break
-
+        pos = next(
+            (
+                i
+                for i in range(len(self.population))
+                if self.population[i].result is None
+            ),
+            -1,
+        )
         if pos != -1:
             indiv = copy.deepcopy(self.population[pos])
             self.population.pop(pos)
@@ -257,11 +254,12 @@ class EvolutionTuner(Tuner):
             # mutation
             space = json2space(self.searchspace_json,
                                self.population[0].config)
-            is_rand = dict()
             mutation_pos = space[random.randint(0, len(space)-1)]
 
-            for i in range(len(self.space)):
-                is_rand[self.space[i]] = (self.space[i] == mutation_pos)
+            is_rand = {
+                self.space[i]: (self.space[i] == mutation_pos)
+                for i in range(len(self.space))
+            }
             config = json2parameter(
                 self.searchspace_json, is_rand, self.random_state, self.population[0].config)
             self.population.pop(1)

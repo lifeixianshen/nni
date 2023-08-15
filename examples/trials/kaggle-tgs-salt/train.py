@@ -64,22 +64,27 @@ def train(args):
     model = eval(model_name)(args.layers, num_filters=args.nf)
     model_subdir = args.pad_mode
     if args.meta_version == 2:
-        model_subdir = args.pad_mode+'_meta2'
+        model_subdir = f'{args.pad_mode}_meta2'
     if args.exp_name is None:
-        model_file = os.path.join(MODEL_DIR, model.name,model_subdir, 'best_{}.pth'.format(args.ifold))
+        model_file = os.path.join(
+            MODEL_DIR, model.name, model_subdir, f'best_{args.ifold}.pth'
+        )
     else:
-        model_file = os.path.join(MODEL_DIR, args.exp_name, model.name, model_subdir, 'best_{}.pth'.format(args.ifold))
+        model_file = os.path.join(
+            MODEL_DIR,
+            args.exp_name,
+            model.name,
+            model_subdir,
+            f'best_{args.ifold}.pth',
+        )
 
     parent_dir = os.path.dirname(model_file)
     if not os.path.exists(parent_dir):
         os.makedirs(parent_dir)
 
-    if args.init_ckp is not None:
-        CKP = args.init_ckp
-    else:
-        CKP = model_file
+    CKP = args.init_ckp if args.init_ckp is not None else model_file
     if os.path.exists(CKP):
-        print('loading {}...'.format(CKP))
+        print(f'loading {CKP}...')
         model.load_state_dict(torch.load(CKP))
     model = model.cuda()
 
@@ -149,7 +154,7 @@ def train(args):
             _save_ckp = '*'
         if args.store_loss_model and mix_score > best_mix_score:
             best_mix_score = mix_score
-            torch.save(model.state_dict(), model_file+'_loss')
+            torch.save(model.state_dict(), f'{model_file}_loss')
             _save_ckp += '.'
         print(' {:.4f} | {:.4f} | {:.4f} | {:.4f} | {:.4f} | {:.2f} | {:4s} | {:.4f} |'.format(
             focal_loss, lovaz_loss, iou, iout, best_iout, (time.time() - bg) / 60, _save_ckp, salt_loss))
@@ -165,9 +170,7 @@ def train(args):
     """@nni.report_final_result(best_iout)"""
 
 def get_lrs(optimizer):
-    lrs = []
-    for pgs in optimizer.state_dict()['param_groups']:
-        lrs.append(pgs['lr'])
+    lrs = [pgs['lr'] for pgs in optimizer.state_dict()['param_groups']]
     lrs = ['{:.6f}'.format(x) for x in lrs]
     return lrs
 
@@ -189,9 +192,7 @@ def validate(args, model, val_loader, epoch=0, threshold=0.5):
             w_loss += _w_loss
             output = torch.sigmoid(output)
 
-            for o in output.cpu():
-                outputs.append(o.squeeze().numpy())
-
+            outputs.extend(o.squeeze().numpy() for o in output.cpu())
     n_batches = val_loader.num // args.batch_size if val_loader.num % args.batch_size == 0 else val_loader.num // args.batch_size + 1
 
     # y_pred, list of np array, each np array's shape is 101,101

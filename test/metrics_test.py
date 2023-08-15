@@ -36,7 +36,7 @@ def run_test():
     else:
         config_file = osp.join('metrics_test', 'metrics.test.yml')
 
-    print('Testing %s...' % config_file)
+    print(f'Testing {config_file}...')
     proc = subprocess.run(['nnictl', 'create', '--config', config_file])
     assert proc.returncode == 0, '`nnictl create` failed with code %d' % proc.returncode
 
@@ -89,9 +89,9 @@ if __name__ == '__main__':
         # sleep 5 seconds here, to make sure previous stopped exp has enough time to exit to avoid port conflict
         time.sleep(5)
         run_test()
-        print(GREEN + 'TEST PASS' + CLEAR)
+        print(f'{GREEN}TEST PASS{CLEAR}')
     except Exception as error:
-        print(RED + 'TEST FAIL' + CLEAR)
+        print(f'{RED}TEST FAIL{CLEAR}')
         print('%r' % error)
         traceback.print_exc()
         raise error

@@ -77,7 +77,7 @@ def convert_command():
         return None
     config_files = glob.glob('./**/*.yml') + glob.glob('./**/**/*.yml')
     for config_file in config_files:
-        print('processing {}'.format(config_file))
+        print(f'processing {config_file}')
         yml_content = get_yml_content(config_file)
         if yml_content.get('trial'):
             if yml_content['trial'].get('command'):

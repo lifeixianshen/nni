@@ -47,12 +47,11 @@ def batch_to_seq(h, nbatch, nsteps, flat=False):
 def seq_to_batch(h, flat=False):
     """convert from sequence to batch"""
     shape = h[0].get_shape().as_list()
-    if not flat:
-        assert len(shape) > 1
-        nh = h[0].get_shape()[-1].value
-        return tf.reshape(tf.concat(axis=1, values=h), [-1, nh])
-    else:
+    if flat:
         return tf.reshape(tf.stack(values=h, axis=1), [-1])
+    assert len(shape) > 1
+    nh = h[0].get_shape()[-1].value
+    return tf.reshape(tf.concat(axis=1, values=h), [-1, nh])
 
 def lstm(xs, ms, s, scope, nh, init_scale=1.0):
     """lstm cell"""
@@ -191,8 +190,9 @@ def adjust_shape(placeholder, data):
 
     placeholder_shape = [x or -1 for x in placeholder.shape.as_list()]
 
-    assert _check_shape(placeholder_shape, data.shape), \
-        'Shape of data {} is not compatible with shape of the placeholder {}'.format(data.shape, placeholder_shape)
+    assert _check_shape(
+        placeholder_shape, data.shape
+    ), f'Shape of data {data.shape} is not compatible with shape of the placeholder {placeholder_shape}'
 
     return np.reshape(data, placeholder_shape)
 

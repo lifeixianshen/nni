@@ -90,9 +90,10 @@ class NetworkDescriptor:
         ''' NetworkDescriptor to json representation
         '''
 
-        skip_list = []
-        for u, v, connection_type in self.skip_connections:
-            skip_list.append({"from": u, "to": v, "type": connection_type})
+        skip_list = [
+            {"from": u, "to": v, "type": connection_type}
+            for u, v, connection_type in self.skip_connections
+        ]
         return {"node_list": self.layers, "skip_list": skip_list}
 
     def add_layer(self, layer):
@@ -243,7 +244,7 @@ class Graph:
                 self.layer_list[layer_id].output = self.node_list[new_v_id]
                 break
 
-        for index, edge_tuple in enumerate(self.reverse_adj_list[v_id]):
+        for edge_tuple in self.reverse_adj_list[v_id]:
             if edge_tuple[0] == u_id:
                 layer_id = edge_tuple[1]
                 self.reverse_adj_list[v_id].remove(edge_tuple)
@@ -269,9 +270,7 @@ class Graph:
     def topological_order(self):
         """Return the topological order of the node IDs from the input node to the output node."""
         q = Queue()
-        in_degree = {}
-        for i in range(self.n_nodes):
-            in_degree[i] = 0
+        in_degree = {i: 0 for i in range(self.n_nodes)}
         for u in range(self.n_nodes):
             for v, _ in self.adj_list[u]:
                 in_degree[v] += 1
@@ -598,10 +597,7 @@ class Graph:
     def extract_descriptor(self):
         """Extract the the description of the Graph as an instance of NetworkDescriptor."""
         main_chain = self.get_main_chain()
-        index_in_main_chain = {}
-        for index, u in enumerate(main_chain):
-            index_in_main_chain[u] = index
-
+        index_in_main_chain = {u: index for index, u in enumerate(main_chain)}
         ret = NetworkDescriptor()
         for u in main_chain:
             for v, layer_id in self.adj_list[u]:
@@ -612,15 +608,17 @@ class Graph:
                 copied_layer.weights = None
                 ret.add_layer(deepcopy(copied_layer))
 
-        for u in index_in_main_chain:
+        for u, value in index_in_main_chain.items():
             for v, layer_id in self.adj_list[u]:
                 if v not in index_in_main_chain:
                     temp_u = u
                     temp_v = v
                     temp_layer_id = layer_id
                     skip_type = None
-                    while not (
-                            temp_v in index_in_main_chain and temp_u in index_in_main_chain):
+                    while (
+                        temp_v not in index_in_main_chain
+                        or temp_u not in index_in_main_chain
+                    ):
                         if is_layer(
                                 self.layer_list[temp_layer_id], "Concatenate"):
                             skip_type = NetworkDescriptor.CONCAT_CONNECT
@@ -628,9 +626,7 @@ class Graph:
                             skip_type = NetworkDescriptor.ADD_CONNECT
                         temp_u = temp_v
                         temp_v, temp_layer_id = self.adj_list[temp_v][0]
-                    ret.add_skip_connection(
-                        index_in_main_chain[u], index_in_main_chain[temp_u], skip_type
-                    )
+                    ret.add_skip_connection(value, index_in_main_chain[temp_u], skip_type)
 
                 elif index_in_main_chain[v] - index_in_main_chain[u] != 1:
                     skip_type = None
@@ -679,9 +675,9 @@ class Graph:
         return json_to_graph(json_model)
 
     def _layer_ids_in_order(self, layer_ids):
-        node_id_to_order_index = {}
-        for index, node_id in enumerate(self.topological_order):
-            node_id_to_order_index[node_id] = index
+        node_id_to_order_index = {
+            node_id: index for index, node_id in enumerate(self.topological_order)
+        }
         return sorted(
             layer_ids,
             key=lambda layer_id: node_id_to_order_index[
@@ -702,9 +698,11 @@ class Graph:
         main_chain = self.get_main_chain()
         ret = []
         for u in main_chain:
-            for v, layer_id in self.adj_list[u]:
-                if v in main_chain and u in main_chain:
-                    ret.append(layer_id)
+            ret.extend(
+                layer_id
+                for v, layer_id in self.adj_list[u]
+                if v in main_chain and u in main_chain
+            )
         return ret
 
     def _conv_layer_ids_in_order(self):
@@ -748,7 +746,7 @@ class Graph:
         for i in range(self.n_nodes):
             distance[i] = 0
             pre_node[i] = i
-        for i in range(self.n_nodes - 1):
+        for _ in range(self.n_nodes - 1):
             for u in range(self.n_nodes):
                 for v, _ in self.adj_list[u]:
                     if distance[u] + 1 > distance[v]:
@@ -759,7 +757,7 @@ class Graph:
             if distance[i] > distance[temp_id]:
                 temp_id = i
         ret = []
-        for i in range(self.n_nodes + 5):
+        for _ in range(self.n_nodes + 5):
             ret.append(temp_id)
             if pre_node[temp_id] == temp_id:
                 break
@@ -776,8 +774,7 @@ class TorchModel(torch.nn.Module):
         super(TorchModel, self).__init__()
         self.graph = graph
         self.layers = []
-        for layer in graph.layer_list:
-            self.layers.append(layer.to_real_layer())
+        self.layers.extend(layer.to_real_layer() for layer in graph.layer_list)
         if graph.weighted:
             for index, layer in enumerate(self.layers):
                 set_stub_weight_to_torch(self.graph.layer_list[index], layer)
@@ -823,9 +820,7 @@ class KerasModel:
 
         self.graph = graph
         self.layers = []
-        for layer in graph.layer_list:
-            self.layers.append(to_real_keras_layer(layer))
-
+        self.layers.extend(to_real_keras_layer(layer) for layer in graph.layer_list)
         # Construct the keras graph.
         # Input
         topo_node_list = self.graph.topological_order
@@ -881,14 +876,15 @@ class ONNXModel:
 
 class JSONModel:
     def __init__(self, graph):
-        data = dict()
-        node_list = list()
-        layer_list = list()
-        operation_history = list()
+        node_list = []
+        layer_list = []
+        operation_history = []
 
-        data["input_shape"] = graph.input_shape
         vis = graph.vis
-        data["vis"] = list(vis.keys()) if vis is not None else None
+        data = {
+            "input_shape": graph.input_shape,
+            "vis": list(vis.keys()) if vis is not None else None,
+        }
         data["weighted"] = graph.weighted
 
         for item in graph.operation_history:
@@ -952,12 +948,12 @@ def json_to_graph(json_model: str):
     json_model = json.loads(json_model)
     # restore graph data from json data
     input_shape = tuple(json_model["input_shape"])
-    node_list = list()
-    node_to_id = dict()
-    id_to_node = dict()
-    layer_list = list()
-    layer_to_id = dict()
-    operation_history = list()
+    node_list = []
+    node_to_id = {}
+    id_to_node = {}
+    layer_list = []
+    layer_to_id = {}
+    operation_history = []
     graph = Graph(input_shape, False)
 
     graph.input_shape = input_shape
@@ -973,13 +969,15 @@ def json_to_graph(json_model: str):
     graph.layer_id_to_output_node_ids = {
         int(k): v for k, v in layer_id_to_output_node_ids.items()
     }
-    adj_list = {}
-    for k, v in json_model["adj_list"].items():
-        adj_list[int(k)] = [tuple(i) for i in v]
+    adj_list = {
+        int(k): [tuple(i) for i in v]
+        for k, v in json_model["adj_list"].items()
+    }
     graph.adj_list = adj_list
-    reverse_adj_list = {}
-    for k, v in json_model["reverse_adj_list"].items():
-        reverse_adj_list[int(k)] = [tuple(i) for i in v]
+    reverse_adj_list = {
+        int(k): [tuple(i) for i in v]
+        for k, v in json_model["reverse_adj_list"].items()
+    }
     graph.reverse_adj_list = reverse_adj_list
 
     for item in json_model["node_list"]:

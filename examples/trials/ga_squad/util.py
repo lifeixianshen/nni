@@ -33,7 +33,7 @@ def shape(tensor):
     Return type is tuple.
     '''
     temp_s = tensor.get_shape()
-    return tuple([temp_s[i].value for i in range(0, len(temp_s))])
+    return tuple(temp_s[i].value for i in range(0, len(temp_s)))
 
 
 def get_variable(name, temp_s):
@@ -47,9 +47,7 @@ def dropout(tensor, drop_prob, is_training):
     '''
     Dropout except test.
     '''
-    if not is_training:
-        return tensor
-    return tf.nn.dropout(tensor, 1.0 - drop_prob)
+    return tensor if not is_training else tf.nn.dropout(tensor, 1.0 - drop_prob)
 
 
 class Timer:

@@ -35,10 +35,7 @@ _end_trials = []
 class NaiveAssessor(Assessor):
     def assess_trial(self, trial_job_id, trial_history):
         _trials.append(trial_job_id)
-        if sum(trial_history) % 2 == 0:
-            return AssessResult.Good
-        else:
-            return AssessResult.Bad
+        return AssessResult.Good if sum(trial_history) % 2 == 0 else AssessResult.Bad
 
     def trial_end(self, trial_job_id, success):
         _end_trials.append((trial_job_id, success))

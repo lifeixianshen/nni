@@ -31,7 +31,7 @@ LOG = logging.getLogger('auto-gbdt')
 
 # specify your configurations as a dict
 def get_default_parameters():
-    params = {
+    return {
         'boosting_type': 'gbdt',
         'objective': 'regression',
         'metric': {'l2', 'auc'},
@@ -40,9 +40,8 @@ def get_default_parameters():
         'feature_fraction': 0.9,
         'bagging_fraction': 0.8,
         'bagging_freq': 5,
-        'verbose': 0
+        'verbose': 0,
     }
-    return params
 
 
 def load_data(train_path='./data/regression.train', test_path='./data/regression.test'):

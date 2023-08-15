@@ -69,5 +69,4 @@ class DoReFaQuantizer(Quantizer):
 
     def quantize(self, input_ri, q_bits):
         scale = pow(2, q_bits)-1
-        output = torch.round(input_ri*scale)/scale
-        return output
+        return torch.round(input_ri*scale)/scale

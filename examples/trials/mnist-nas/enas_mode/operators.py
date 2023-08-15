@@ -61,12 +61,11 @@ def dilated_conv(inputs, size=3, in_ch=-1, out_ch=-1):
 def separable_conv(inputs, size=-1, in_ch=-1, out_ch=-1):
     """separable_conv"""
     x_input = sum_op(inputs)
-    if size in [3, 5, 7]:
-        depth_matrix = weight_variable([size, size, in_ch, 1])
-        point_matrix = weight_variable([1, 1, 1*in_ch, out_ch])
-        return tf.nn.separable_conv2d(x_input, depth_matrix, point_matrix, strides=[1, 1, 1, 1], padding='SAME')
-    else:
+    if size not in [3, 5, 7]:
         raise Exception("Unknown filter size: %d." % size)
+    depth_matrix = weight_variable([size, size, in_ch, 1])
+    point_matrix = weight_variable([1, 1, 1*in_ch, out_ch])
+    return tf.nn.separable_conv2d(x_input, depth_matrix, point_matrix, strides=[1, 1, 1, 1], padding='SAME')
 
 
 def avg_pool(inputs, size=-1):

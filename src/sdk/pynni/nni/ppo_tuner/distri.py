@@ -105,7 +105,7 @@ class CategoricalPd(Pd):
             logits_shape_list = self.logits.get_shape().as_list()[:-1]
             for xs, ls in zip(x_shape_list, logits_shape_list):
                 if xs is not None and ls is not None:
-                    assert xs == ls, 'shape mismatch: {} in x vs {} in logits'.format(xs, ls)
+                    assert xs == ls, f'shape mismatch: {xs} in x vs {ls} in logits'
 
             x = tf.one_hot(x, self.logits.get_shape().as_list()[-1])
         else:
@@ -189,10 +189,9 @@ def _matching_fc(tensor, name, size, nsteps, init_scale, init_bias, np_mask, is_
         mask = tf.get_variable("act_mask", dtype=tf.float32, initializer=np_mask[0], trainable=False)
         mask_npinf = tf.get_variable("act_mask_npinf", dtype=tf.float32, initializer=np_mask[1], trainable=False)
         res = fc(tensor, name, size, init_scale=init_scale, init_bias=init_bias)
-        if not is_act_model:
-            re_res = tf.reshape(res, [-1, nsteps, size])
-            masked_res = tf.math.multiply(re_res, mask)
-            re_masked_res = tf.reshape(masked_res, [-1, size])
-            return re_masked_res, mask, mask_npinf
-        else:
+        if is_act_model:
             return res, mask, mask_npinf
+        re_res = tf.reshape(res, [-1, nsteps, size])
+        masked_res = tf.math.multiply(re_res, mask)
+        re_masked_res = tf.reshape(masked_res, [-1, size])
+        return re_masked_res, mask, mask_npinf

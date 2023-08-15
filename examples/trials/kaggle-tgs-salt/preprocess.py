@@ -49,24 +49,42 @@ def generate_stratified_metadata():
     train_df = pd.read_csv(os.path.join(DATA_DIR, "train.csv"), index_col="id", usecols=[0])
     depths_df = pd.read_csv(os.path.join(DATA_DIR, "depths.csv"), index_col="id")
     train_df = train_df.join(depths_df)
-    train_df["masks"] = [np.array(load_img(os.path.join(DATA_DIR, "train", "masks", "{}.png".format(idx)), grayscale=True)) / 255 for idx in train_df.index]
+    train_df["masks"] = [
+        np.array(
+            load_img(
+                os.path.join(DATA_DIR, "train", "masks", f"{idx}.png"),
+                grayscale=True,
+            )
+        )
+        / 255
+        for idx in train_df.index
+    ]
     train_df["coverage"] = train_df.masks.map(np.sum) / pow(settings.ORIG_H, 2)
     train_df["coverage_class"] = train_df.coverage.map(cov_to_class)
     train_df["salt_exists"] = train_df.coverage_class.map(lambda x: 0 if x == 0 else 1)
     train_df["is_train"] = 1
-    train_df["file_path_image"] = train_df.index.map(lambda x: os.path.join(settings.TRAIN_IMG_DIR, '{}.png'.format(x)))
-    train_df["file_path_mask"] = train_df.index.map(lambda x: os.path.join(settings.TRAIN_MASK_DIR, '{}.png'.format(x)))
+    train_df["file_path_image"] = train_df.index.map(
+        lambda x: os.path.join(settings.TRAIN_IMG_DIR, f'{x}.png')
+    )
+    train_df["file_path_mask"] = train_df.index.map(
+        lambda x: os.path.join(settings.TRAIN_MASK_DIR, f'{x}.png')
+    )
 
     train_df.to_csv(os.path.join(settings.DATA_DIR, 'train_meta2.csv'),
         columns=['file_path_image','file_path_mask','is_train','z','salt_exists', 'coverage_class', 'coverage'])
-    train_splits = {}
-
     kf = StratifiedKFold(n_splits=10)
-    for i, (train_index, valid_index) in enumerate(kf.split(train_df.index.values.reshape(-1), train_df.coverage_class.values.reshape(-1))):
-        train_splits[str(i)] = {
+    train_splits = {
+        str(i): {
             'train_index': train_index.tolist(),
-            'val_index': valid_index.tolist()
+            'val_index': valid_index.tolist(),
         }
+        for i, (train_index, valid_index) in enumerate(
+            kf.split(
+                train_df.index.values.reshape(-1),
+                train_df.coverage_class.values.reshape(-1),
+            )
+        )
+    }
     with open(os.path.join(settings.DATA_DIR, 'train_split.json'), 'w') as f:
         json.dump(train_splits, f, indent=4)
 

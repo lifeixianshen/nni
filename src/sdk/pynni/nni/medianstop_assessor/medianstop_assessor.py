@@ -34,8 +34,8 @@ class MedianstopAssessor(Assessor):
     """
     def __init__(self, optimize_mode='maximize', start_step=0):
         self._start_step = start_step
-        self._running_history = dict()
-        self._completed_avg_history = dict()
+        self._running_history = {}
+        self._completed_avg_history = {}
         if optimize_mode == 'maximize':
             self._high_better = True
         elif optimize_mode == 'minimize':
@@ -70,11 +70,9 @@ class MedianstopAssessor(Assessor):
         """
         if trial_job_id in self._running_history:
             if success:
-                cnt = 0
                 history_sum = 0
                 self._completed_avg_history[trial_job_id] = []
-                for each in self._running_history[trial_job_id]:
-                    cnt += 1
+                for cnt, each in enumerate(self._running_history[trial_job_id], start=1):
                     history_sum += each
                     self._completed_avg_history[trial_job_id].append(history_sum / cnt)
             self._running_history.pop(trial_job_id)
@@ -115,22 +113,19 @@ class MedianstopAssessor(Assessor):
             logger.exception(error)
 
         self._update_data(trial_job_id, num_trial_history)
-        if self._high_better:
-            best_history = max(trial_history)
-        else:
-            best_history = min(trial_history)
-
-        avg_array = []
-        for id_ in self._completed_avg_history:
-            if len(self._completed_avg_history[id_]) >= curr_step:
-                avg_array.append(self._completed_avg_history[id_][curr_step - 1])
-        if avg_array:
-            avg_array.sort()
-            if self._high_better:
-                median = avg_array[(len(avg_array)-1) // 2]
-                return AssessResult.Bad if best_history < median else AssessResult.Good
-            else:
-                median = avg_array[len(avg_array) // 2]
-                return AssessResult.Bad if best_history > median else AssessResult.Good
-        else:
+        best_history = max(trial_history) if self._high_better else min(trial_history)
+        if not (
+            avg_array := [
+                self._completed_avg_history[id_][curr_step - 1]
+                for id_ in self._completed_avg_history
+                if len(self._completed_avg_history[id_]) >= curr_step
+            ]
+        ):
             return AssessResult.Good
+        avg_array.sort()
+        if self._high_better:
+            median = avg_array[(len(avg_array)-1) // 2]
+            return AssessResult.Bad if best_history < median else AssessResult.Good
+        else:
+            median = avg_array[len(avg_array) // 2]
+            return AssessResult.Bad if best_history > median else AssessResult.Good

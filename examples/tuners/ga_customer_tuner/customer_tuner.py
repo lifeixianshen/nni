@@ -58,7 +58,7 @@ class Individual(object):
         self.save_dir = save_dir
 
     def __str__(self):
-        return "info: " + str(self.info) + ", config :" + str(self.config) + ", result: " + str(self.result)
+        return f"info: {str(self.info)}, config :{str(self.config)}, result: {str(self.result)}"
 
     def mutation(self, config=None, info=None, save_dir=None):
         self.result = None
@@ -86,11 +86,14 @@ class CustomerTuner(Tuner):
         if len(self.population) <= 0:
             logger.debug("the len of poplution lower than zero.")
             raise Exception('The population is empty')
-        pos = -1
-        for i in range(len(self.population)):
-            if self.population[i].result == None:
-                pos = i
-                break
+        pos = next(
+            (
+                i
+                for i in range(len(self.population))
+                if self.population[i].result is None
+            ),
+            -1,
+        )
         if pos != -1:
             indiv = copy.deepcopy(self.population[pos])
             self.population.pop(pos)

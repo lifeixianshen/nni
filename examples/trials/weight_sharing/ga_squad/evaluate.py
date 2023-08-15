@@ -79,8 +79,7 @@ def f1_score(prediction, ground_truth):
     if not ground_truth_tokens:
         raise ValueError("empty groundtruth tokens")
     recall = 1.0 * num_same / len(ground_truth_tokens)
-    f1_result = (2 * precision * recall) / (precision + recall + 1e-10)
-    return f1_result
+    return (2 * precision * recall) / (precision + recall + 1e-10)
 
 
 def exact_match_score(prediction, ground_truth):
@@ -136,9 +135,13 @@ def evaluate(data_file, pred_file):
     with open(data_file) as dataset_file:
         dataset_json = json.load(dataset_file)
         if dataset_json['version'] != expected_version:
-            print('Evaluation expects v-' + expected_version +
-                  ', but got dataset with v-' + dataset_json['version'],
-                  file=sys.stderr)
+            print(
+                (
+                    f'Evaluation expects v-{expected_version}, but got dataset with v-'
+                    + dataset_json['version']
+                ),
+                file=sys.stderr,
+            )
         dataset = dataset_json['data']
     with open(pred_file) as prediction_file:
         predictions = json.load(prediction_file)
@@ -156,9 +159,13 @@ def evaluate_with_predictions(data_file, predictions):
     with open(data_file) as dataset_file:
         dataset_json = json.load(dataset_file)
         if dataset_json['version'] != expected_version:
-            print('Evaluation expects v-' + expected_version +
-                  ', but got dataset with v-' + dataset_json['version'],
-                  file=sys.stderr)
+            print(
+                (
+                    f'Evaluation expects v-{expected_version}, but got dataset with v-'
+                    + dataset_json['version']
+                ),
+                file=sys.stderr,
+            )
         dataset = dataset_json['data']
     result = _evaluate(dataset, predictions)
     return result['exact_match']
@@ -167,7 +174,8 @@ def evaluate_with_predictions(data_file, predictions):
 if __name__ == '__main__':
     EXPECT_VERSION = '1.1'
     parser = argparse.ArgumentParser(
-        description='Evaluation for SQuAD ' + EXPECT_VERSION)
+        description=f'Evaluation for SQuAD {EXPECT_VERSION}'
+    )
     parser.add_argument('dataset_file', help='Dataset file')
     parser.add_argument('prediction_file', help='Prediction File')
     args = parser.parse_args()

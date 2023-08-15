@@ -42,7 +42,7 @@ class DummyAdvisor(MsgDispatcherBase):
         self.random_state = np.random.RandomState()
 
     def handle_initialize(self, data):
-        logger.info("Advisor initialized: {}".format(data))
+        logger.info(f"Advisor initialized: {data}")
         self.handle_update_search_space(data)
         self.parameters_count = 0
         self.parameter_best_metric = defaultdict(float)
@@ -61,23 +61,23 @@ class DummyAdvisor(MsgDispatcherBase):
             },
             "parameter_source": "algorithm"
         }
-        logger.info("New trial sent: {}".format(new_trial))
+        logger.info(f"New trial sent: {new_trial}")
         send(CommandType.NewTrialJob, json_tricks.dumps(new_trial))
 
     def handle_request_trial_jobs(self, data):
-        logger.info("Request trial jobs: {}".format(data))
+        logger.info(f"Request trial jobs: {data}")
         for _ in range(data):
             self._send_new_trial()
 
     def handle_update_search_space(self, data):
-        logger.info("Search space update: {}".format(data))
+        logger.info(f"Search space update: {data}")
         self.searchspace_json = data
 
     def handle_trial_end(self, data):
-        logger.info("Trial end: {}".format(data)) # do nothing
+        logger.info(f"Trial end: {data}")
 
     def handle_report_metric_data(self, data):
-        logger.info("Metric reported: {}".format(data))
+        logger.info(f"Metric reported: {data}")
         if data['type'] == MetricType.REQUEST_PARAMETER:
             raise ValueError("Request parameter not supported")
         elif data["type"] == MetricType.PERIODICAL:
@@ -87,9 +87,10 @@ class DummyAdvisor(MsgDispatcherBase):
                 self.parameter_cooldown[parameter_id] = 0
             else:
                 self.parameter_cooldown[parameter_id] += 1
-                logger.info("Accuracy dropped, cooldown {}, sending a new trial".format(
-                    self.parameter_cooldown[parameter_id]))
+                logger.info(
+                    f"Accuracy dropped, cooldown {self.parameter_cooldown[parameter_id]}, sending a new trial"
+                )
                 self._send_new_trial()
                 if self.parameter_cooldown[parameter_id] >= self.k:
-                    logger.info("Send kill signal to {}".format(data))
+                    logger.info(f"Send kill signal to {data}")
                     send(CommandType.KillTrialJob, json_tricks.dumps(data["trial_job_id"]))

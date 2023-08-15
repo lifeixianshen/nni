@@ -48,9 +48,7 @@ def get_experiment_time(port):
 def get_experiment_status(port):
     '''get the status of an experiment'''
     result, response = check_rest_server_quick(port)
-    if result:
-        return json.loads(response.text).get('status')
-    return None
+    return json.loads(response.text).get('status') if result else None
 
 def update_experiment():
     '''Update the experiment status in config file'''
@@ -72,8 +70,7 @@ def update_experiment():
                     experiment_config.update_experiment(key, 'startTime', startTime)
                 if endTime:
                     experiment_config.update_experiment(key, 'endTime', endTime)
-                status = get_experiment_status(rest_port)
-                if status:
+                if status := get_experiment_status(rest_port):
                     experiment_config.update_experiment(key, 'status', status)
 
 def check_experiment_id(args, update=True):
@@ -97,15 +94,19 @@ def check_experiment_id(args, update=True):
                 experiment_config.remove_experiment(key)
         if len(running_experiment_list) > 1:
             print_error('There are multiple experiments, please set the experiment id...')
-            experiment_information = ""
-            for key in running_experiment_list:
-                experiment_information += EXPERIMENT_DETAIL_FORMAT % (key,
-                                                                      experiment_dict[key].get('experimentName', 'N/A'),
-                                                                      experiment_dict[key]['status'],
-                                                                      experiment_dict[key]['port'],
-                                                                      experiment_dict[key].get('platform'),
-                                                                      experiment_dict[key]['startTime'],
-                                                                      experiment_dict[key]['endTime'])
+            experiment_information = "".join(
+                EXPERIMENT_DETAIL_FORMAT
+                % (
+                    key,
+                    experiment_dict[key].get('experimentName', 'N/A'),
+                    experiment_dict[key]['status'],
+                    experiment_dict[key]['port'],
+                    experiment_dict[key].get('platform'),
+                    experiment_dict[key]['startTime'],
+                    experiment_dict[key]['endTime'],
+                )
+                for key in running_experiment_list
+            )
             print(EXPERIMENT_INFORMATION_FORMAT % experiment_information)
             exit(1)
         elif not running_experiment_list:
@@ -115,9 +116,8 @@ def check_experiment_id(args, update=True):
             return running_experiment_list[0]
     if experiment_dict.get(args.id):
         return args.id
-    else:
-        print_error('Id not correct.')
-        return None
+    print_error('Id not correct.')
+    return None
 
 def parse_ids(args):
     '''Parse the arguments for nnictl stop
@@ -148,45 +148,56 @@ def parse_ids(args):
     if args.all:
         return running_experiment_list
     if args.port is not None:
-        for key in running_experiment_list:
-            if str(experiment_dict[key]['port']) == args.port:
-                result_list.append(key)
+        result_list.extend(
+            key
+            for key in running_experiment_list
+            if str(experiment_dict[key]['port']) == args.port
+        )
         if args.id and result_list and args.id != result_list[0]:
             print_error('Experiment id and resful server port not match')
             exit(1)
     elif not args.id:
         if len(running_experiment_list) > 1:
             print_error('There are multiple experiments, please set the experiment id...')
-            experiment_information = ""
-            for key in running_experiment_list:
-                experiment_information += EXPERIMENT_DETAIL_FORMAT % (key,
-                                                                      experiment_dict[key].get('experimentName', 'N/A'),
-                                                                      experiment_dict[key]['status'],
-                                                                      experiment_dict[key]['port'],
-                                                                      experiment_dict[key].get('platform'),
-                                                                      experiment_dict[key]['startTime'],
-                                                                      experiment_dict[key]['endTime'])
+            experiment_information = "".join(
+                EXPERIMENT_DETAIL_FORMAT
+                % (
+                    key,
+                    experiment_dict[key].get('experimentName', 'N/A'),
+                    experiment_dict[key]['status'],
+                    experiment_dict[key]['port'],
+                    experiment_dict[key].get('platform'),
+                    experiment_dict[key]['startTime'],
+                    experiment_dict[key]['endTime'],
+                )
+                for key in running_experiment_list
+            )
             print(EXPERIMENT_INFORMATION_FORMAT % experiment_information)
             exit(1)
         else:
             result_list = running_experiment_list
     elif args.id.endswith('*'):
-        for expId in running_experiment_list:
-            if expId.startswith(args.id[:-1]):
-                result_list.append(expId)
+        result_list.extend(
+            expId
+            for expId in running_experiment_list
+            if expId.startswith(args.id[:-1])
+        )
     elif args.id in running_experiment_list:
         result_list.append(args.id)
     else:
-        for expId in running_experiment_list:
-            if expId.startswith(args.id):
-                result_list.append(expId)
+        result_list.extend(
+            expId
+            for expId in running_experiment_list
+            if expId.startswith(args.id)
+        )
         if len(result_list) > 1:
-            print_error(args.id + ' is ambiguous, please choose ' + ' '.join(result_list))
+            print_error(f'{args.id} is ambiguous, please choose ' + ' '.join(result_list))
             return None
-    if not result_list and (args.id  or args.port):
-        print_error('There are no experiments matched, please set correct experiment id or restful server port')
-    elif not result_list:
-        print_error('There is no experiment running...')
+    if not result_list:
+        if args.id or args.port:
+            print_error('There are no experiments matched, please set correct experiment id or restful server port')
+        else:
+            print_error('There is no experiment running...')
     return result_list
 
 def get_config_filename(args):
@@ -236,18 +247,17 @@ def stop_experiment(args):
     if args.id and args.id == 'all':
         print_warning('\'nnictl stop all\' is abolished, please use \'nnictl stop --all\' to stop all of experiments!')
         exit(1)
-    experiment_id_list = parse_ids(args)
-    if experiment_id_list:
+    if experiment_id_list := parse_ids(args):
         experiment_config = Experiments()
         experiment_dict = experiment_config.get_all_experiments()
         for experiment_id in experiment_id_list:
-            print_normal('Stoping experiment %s' % experiment_id)
+            print_normal(f'Stoping experiment {experiment_id}')
             nni_config = Config(experiment_dict[experiment_id]['fileName'])
-            rest_pid = nni_config.get_config('restServerPid')
-            if rest_pid:
+            if rest_pid := nni_config.get_config('restServerPid'):
                 kill_command(rest_pid)
-                tensorboard_pid_list = nni_config.get_config('tensorboardPidList')
-                if tensorboard_pid_list:
+                if tensorboard_pid_list := nni_config.get_config(
+                    'tensorboardPidList'
+                ):
                     for tensorboard_pid in tensorboard_pid_list:
                         try:
                             kill_command(tensorboard_pid)
@@ -307,7 +317,12 @@ def trial_codegen(args):
         print_error('The experiment is not using annotation')
         exit(1)
     code_dir = nni_config.get_config('experimentConfig')['trial']['codeDir']
-    expand_annotations(code_dir, './exp_%s_trial_%s_code'%(exp_id, args.trial_id), exp_id, args.trial_id)
+    expand_annotations(
+        code_dir,
+        f'./exp_{exp_id}_trial_{args.trial_id}_code',
+        exp_id,
+        args.trial_id,
+    )
 
 def list_experiment(args):
     '''Get experiment information'''
@@ -382,14 +397,14 @@ def log_trial(args):
             print_error('Trial id {0} not correct, please check your command!'.format(args.trial_id))
             exit(1)
         if trial_id_path_dict.get(args.trial_id):
-            print_normal('id:' + args.trial_id + ' path:' + trial_id_path_dict[args.trial_id])
+            print_normal(f'id:{args.trial_id} path:{trial_id_path_dict[args.trial_id]}')
         else:
             print_error('Log path is not available yet, please wait...')
             exit(1)
     else:
         print_normal('All of trial log info:')
-        for key in trial_id_path_dict:
-            print_normal('id:' + key + ' path:' + trial_id_path_dict[key])
+        for key, value in trial_id_path_dict.items():
+            print_normal(f'id:{key} path:{value}')
         if not trial_id_path_dict:
             print_normal('None')
 
@@ -423,7 +438,7 @@ def remote_clean(machine_list, experiment_id=None):
         else:
             remote_dir = '/' + '/'.join(['tmp', 'nni', 'experiments'])
         sftp = create_ssh_sftp_client(host, port, userName, passwd)
-        print_normal('removing folder {0}'.format(host + ':' + str(port) + remote_dir))
+        print_normal('removing folder {0}'.format(f'{host}:{str(port)}{remote_dir}'))
         remove_remote_directory(sftp, remote_dir)
 
 def hdfs_clean(host, user_name, output_dir, experiment_id=None):
@@ -437,16 +452,15 @@ def hdfs_clean(host, user_name, output_dir, experiment_id=None):
     hdfs_client.delete(full_path, recursive=True)
     if output_dir:
         pattern = re.compile('hdfs://(?P<host>([0-9]{1,3}.){3}[0-9]{1,3})(:[0-9]{2,5})?(?P<baseDir>/.*)?')
-        match_result = pattern.match(output_dir)
-        if match_result:
-            output_host = match_result.group('host')
-            output_dir = match_result.group('baseDir')
+        if match_result := pattern.match(output_dir):
+            output_host = match_result['host']
+            output_dir = match_result['baseDir']
             #check if the host is valid
             if output_host != host:
                 print_warning('The host in {0} is not consistent with {1}'.format(output_dir, host))
             else:
                 if experiment_id:
-                    output_dir = output_dir + '/' + experiment_id
+                    output_dir = f'{output_dir}/{experiment_id}'
                 print_normal('removing folder {0} in hdfs'.format(output_dir))
                 hdfs_client.delete(output_dir, recursive=True)
 
@@ -510,7 +524,7 @@ def get_platform_dir(config_content):
         for machine in machine_list:
             host = machine.get('ip')
             port = machine.get('port')
-            dir_list.append(host + ':' + str(port) + '/tmp/nni')
+            dir_list.append(f'{host}:{str(port)}/tmp/nni')
     elif platform == 'pai':
         host = config_content.get('paiConfig').get('host')
         user_name = config_content.get('paiConfig').get('userName')
@@ -543,7 +557,7 @@ def platform_clean(args):
         print_normal('This command will remove below folders of NNI caches. If other users are using experiments' \
                      ' on below hosts, it will be broken.')
         for value in dir_list:
-            print('       ' + value)
+            print(f'       {value}')
         inputs = input('INFO: do you want to continue?[y/N]:')
         if not inputs.lower() or inputs.lower() in ['n', 'no']:
             exit(0)
@@ -571,23 +585,28 @@ def experiment_list(args):
         exit(1)
     experiment_id_list = []
     if args.all:
-        for key in experiment_dict.keys():
-            experiment_id_list.append(key)
+        experiment_id_list.extend(iter(experiment_dict.keys()))
     else:
-        for key in experiment_dict.keys():
-            if experiment_dict[key]['status'] != 'STOPPED':
-                experiment_id_list.append(key)
+        experiment_id_list.extend(
+            key
+            for key in experiment_dict.keys()
+            if experiment_dict[key]['status'] != 'STOPPED'
+        )
         if not experiment_id_list:
             print_warning('There is no experiment running...\nYou can use \'nnictl experiment list --all\' to list all experiments.')
-    experiment_information = ""
-    for key in experiment_id_list:
-        experiment_information += EXPERIMENT_DETAIL_FORMAT % (key,
-                                                              experiment_dict[key].get('experimentName', 'N/A'),
-                                                              experiment_dict[key]['status'],
-                                                              experiment_dict[key]['port'],
-                                                              experiment_dict[key].get('platform'),
-                                                              experiment_dict[key]['startTime'],
-                                                              experiment_dict[key]['endTime'])
+    experiment_information = "".join(
+        EXPERIMENT_DETAIL_FORMAT
+        % (
+            key,
+            experiment_dict[key].get('experimentName', 'N/A'),
+            experiment_dict[key]['status'],
+            experiment_dict[key]['port'],
+            experiment_dict[key].get('platform'),
+            experiment_dict[key]['startTime'],
+            experiment_dict[key]['endTime'],
+        )
+        for key in experiment_id_list
+    )
     print(EXPERIMENT_INFORMATION_FORMAT % experiment_information)
 
 def get_time_interval(time1, time2):
@@ -616,10 +635,11 @@ def show_experiment_info():
     if not experiment_dict:
         print('There is no experiment running...')
         exit(1)
-    experiment_id_list = []
-    for key in experiment_dict.keys():
-        if experiment_dict[key]['status'] != 'STOPPED':
-            experiment_id_list.append(key)
+    experiment_id_list = [
+        key
+        for key in experiment_dict.keys()
+        if experiment_dict[key]['status'] != 'STOPPED'
+    ]
     if not experiment_id_list:
         print_warning('There is no experiment running...')
         return
@@ -686,7 +706,7 @@ def export_trials_data(args):
                     writer.writeheader()
                     writer.writerows(trial_records)
             else:
-                print_error('Unknown type: %s' % args.type)
+                print_error(f'Unknown type: {args.type}')
                 exit(1)
         else:
             print_error('Export failed...')

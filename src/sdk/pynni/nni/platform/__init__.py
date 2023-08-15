@@ -28,4 +28,4 @@ elif trial_env_vars.NNI_PLATFORM == 'unittest':
 elif trial_env_vars.NNI_PLATFORM in ('local', 'remote', 'pai', 'kubeflow', 'frameworkcontroller'):
     from .local import *
 else:
-    raise RuntimeError('Unknown platform %s' % trial_env_vars.NNI_PLATFORM)
+    raise RuntimeError(f'Unknown platform {trial_env_vars.NNI_PLATFORM}')

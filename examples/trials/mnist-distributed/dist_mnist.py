@@ -146,7 +146,7 @@ def main(unused_argv):
     if FLAGS.task_index is None or FLAGS.task_index == "":
         raise ValueError("Must specify an explicit `task_index`")
 
-    print("job name = %s" % FLAGS.job_name)
+    print(f"job name = {FLAGS.job_name}")
     print("task index = %d" % FLAGS.task_index)
 
     cluster_config = tf_config.get('cluster', {})
@@ -189,10 +189,10 @@ def main(unused_argv):
     # parameter servers (ps). The non-Variable ops will be placed on the workers.
     # The ps use CPU and workers use corresponding GPU
     with tf.device(
-            tf.train.replica_device_setter(
-                worker_device=worker_device,
-                ps_device="/job:ps/cpu:0",
-                cluster=cluster)):
+                tf.train.replica_device_setter(
+                    worker_device=worker_device,
+                    ps_device="/job:ps/cpu:0",
+                    cluster=cluster)):
         global_step = tf.Variable(0, name="global_step", trainable=False)
 
         # Variables of the hidden layer
@@ -239,10 +239,7 @@ def main(unused_argv):
         train_step = opt.minimize(cross_entropy, global_step=global_step)
 
         if FLAGS.sync_replicas:
-            local_init_op = opt.local_step_init_op
-            if is_chief:
-                local_init_op = opt.chief_init_op
-
+            local_init_op = opt.chief_init_op if is_chief else opt.local_step_init_op
             ready_for_local_init_op = opt.ready_for_local_init_op
 
             # Initial token and chief queue runners required by the sync_replicas mode
@@ -285,8 +282,8 @@ def main(unused_argv):
                   FLAGS.task_index)
 
         if FLAGS.existing_servers:
-            server_grpc_url = "grpc://" + worker_spec[FLAGS.task_index]
-            print("Using existing server at: %s" % server_grpc_url)
+            server_grpc_url = f"grpc://{worker_spec[FLAGS.task_index]}"
+            print(f"Using existing server at: {server_grpc_url}")
 
             sess = sv.prepare_or_wait_for_session(
                 server_grpc_url, config=sess_config)

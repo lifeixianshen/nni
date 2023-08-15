@@ -75,10 +75,7 @@ def _pack_parameter(parameter_id, params, customized=False, trial_job_id=None, p
     }
     if trial_job_id is not None:
         ret['trial_job_id'] = trial_job_id
-    if parameter_index is not None:
-        ret['parameter_index'] = parameter_index
-    else:
-        ret['parameter_index'] = 0
+    ret['parameter_index'] = parameter_index if parameter_index is not None else 0
     return json_tricks.dumps(ret)
 
 
@@ -162,7 +159,7 @@ class MsgDispatcher(MsgDispatcherBase):
             send(CommandType.SendTrialJobParameter, _pack_parameter(param_id, param, trial_job_id=data['trial_job_id'],
                                                                     parameter_index=data['parameter_index']))
         else:
-            raise ValueError('Data type not supported: {}'.format(data['type']))
+            raise ValueError(f"Data type not supported: {data['type']}")
 
     def handle_trial_end(self, data):
         """

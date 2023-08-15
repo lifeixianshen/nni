@@ -49,39 +49,35 @@ def create_builtin_class_instance(classname, jsonstr_args, is_advisor=False):
     if is_advisor:
         if classname not in AdvisorModuleName or \
             importlib.util.find_spec(AdvisorModuleName[classname]) is None:
-            raise RuntimeError('Advisor module is not found: {}'.format(classname))
+            raise RuntimeError(f'Advisor module is not found: {classname}')
         class_module = importlib.import_module(AdvisorModuleName[classname])
         class_constructor = getattr(class_module, AdvisorClassName[classname])
     else:
         if classname not in ModuleName or \
             importlib.util.find_spec(ModuleName[classname]) is None:
-            raise RuntimeError('Tuner module is not found: {}'.format(classname))
+            raise RuntimeError(f'Tuner module is not found: {classname}')
         class_module = importlib.import_module(ModuleName[classname])
         class_constructor = getattr(class_module, ClassName[classname])
     if jsonstr_args:
         class_args = augment_classargs(json.loads(jsonstr_args), classname)
     else:
         class_args = augment_classargs({}, classname)
-    if class_args:
-        instance = class_constructor(**class_args)
-    else:
-        instance = class_constructor()
-    return instance
+    return class_constructor(**class_args) if class_args else class_constructor()
 
 def create_customized_class_instance(class_dir, class_filename, classname, jsonstr_args):
     if not os.path.isfile(os.path.join(class_dir, class_filename)):
-        raise ValueError('Class file not found: {}'.format(
-            os.path.join(class_dir, class_filename)))
+        raise ValueError(
+            f'Class file not found: {os.path.join(class_dir, class_filename)}'
+        )
     sys.path.append(class_dir)
     module_name = os.path.splitext(class_filename)[0]
     class_module = importlib.import_module(module_name)
     class_constructor = getattr(class_module, classname)
     if jsonstr_args:
         class_args = json.loads(jsonstr_args)
-        instance = class_constructor(**class_args)
+        return class_constructor(**class_args)
     else:
-        instance = class_constructor()
-    return instance
+        return class_constructor()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='parse command line parameters.')
@@ -136,10 +132,7 @@ def main():
     else:
         # tuner (and assessor) is enabled and starts to run
         tuner = _create_tuner(args)
-        if args.assessor_class_name:
-            assessor = _create_assessor(args)
-        else:
-            assessor = None
+        assessor = _create_assessor(args) if args.assessor_class_name else None
         dispatcher = MsgDispatcher(tuner, assessor)
 
         try:

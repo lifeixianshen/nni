@@ -31,7 +31,7 @@ def test_nni_cli():
     try:
         # Sleep here to make sure previous stopped exp has enough time to exit to avoid port conflict
         time.sleep(6)
-        print(GREEN + 'Testing nnicli:' + config_file + CLEAR)
+        print(f'{GREEN}Testing nnicli:{config_file}{CLEAR}')
         nc.start_nni(config_file)
         time.sleep(3)
         nc.set_endpoint('http://localhost:8080')
@@ -40,9 +40,9 @@ def test_nni_cli():
         print(nc.get_experiment_status())
         nc.list_trial_jobs()
 
-        print(GREEN + 'Test nnicli {}: TEST PASS'.format(config_file) + CLEAR)
+        print(f'{GREEN}Test nnicli {config_file}: TEST PASS{CLEAR}')
     except Exception as error:
-        print(RED + 'Test nnicli {}: TEST FAIL'.format(config_file) + CLEAR)
+        print(f'{RED}Test nnicli {config_file}: TEST FAIL{CLEAR}')
         print('%r' % error)
         traceback.print_exc()
         raise error

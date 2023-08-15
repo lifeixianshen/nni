@@ -82,7 +82,7 @@ def _check_endpoint():
 
 def _nni_rest_get(api_path, response_type='json'):
     _check_endpoint()
-    uri = '{}/{}/{}'.format(_api_endpoint, API_ROOT_PATH, api_path)
+    uri = f'{_api_endpoint}/{API_ROOT_PATH}/{api_path}'
     res = requests.get(uri)
     if _http_succeed(res.status_code):
         if response_type == 'json':
@@ -104,14 +104,13 @@ def _create_process(cmd):
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     while process.poll() is None:
-        output = process.stdout.readline()
-        if output:
+        if output := process.stdout.readline():
             print(output.decode('utf-8').strip())
     return process.returncode
 
 def start_nni(config_file):
     """start nni experiment with specified configuration file"""
-    cmd = 'nnictl create --config {}'.format(config_file).split(' ')
+    cmd = f'nnictl create --config {config_file}'.split(' ')
     if _create_process(cmd) != 0:
         raise RuntimeError('Failed to start nni.')
 

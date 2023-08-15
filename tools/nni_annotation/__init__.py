@@ -31,9 +31,7 @@ from . import specific_code_generator
 
 __all__ = ['generate_search_space', 'expand_annotations']
 
-slash = '/'
-if sys.platform == "win32":
-    slash = '\\'
+slash = '\\' if sys.platform == "win32" else '/'
 
 def generate_search_space(code_dir):
     """Generate search space from Python source code.
@@ -58,7 +56,7 @@ def generate_search_space(code_dir):
             if file_name.endswith('.py'):
                 path = os.path.join(subdir, file_name)
                 module = package + file_name[:-3]
-                search_space.update(_generate_file_search_space(path, module))
+                search_space |= _generate_file_search_space(path, module)
 
     return search_space
 
@@ -68,7 +66,7 @@ def _generate_file_search_space(path, module):
             search_space, code = search_space_generator.generate(module, src.read())
         except Exception as exc:  # pylint: disable=broad-except
             if exc.args:
-                raise RuntimeError(path + ' ' + '\n'.join(exc.args))
+                raise RuntimeError(f'{path} ' + '\n'.join(exc.args))
             else:
                 raise RuntimeError('Failed to generate search space for %s: %r' % (path, exc))
     with open(path, 'w') as dst:
@@ -122,7 +120,7 @@ def expand_annotations(src_dir, dst_dir, exp_id='', trial_id='', nas_mode=None):
     return dst_dir if annotated else src_dir
 
 def _expand_file_annotations(src_path, dst_path, nas_mode):
-    with open(src_path) as src, open(dst_path, 'w') as dst:
+    with (open(src_path) as src, open(dst_path, 'w') as dst):
         try:
             annotated_code = code_generator.parse(src.read(), nas_mode)
             if annotated_code is None:
@@ -133,14 +131,14 @@ def _expand_file_annotations(src_path, dst_path, nas_mode):
 
         except Exception as exc:  # pylint: disable=broad-except
             if exc.args:
-                raise RuntimeError(src_path + ' ' + '\n'.join(str(arg) for arg in exc.args))
+                raise RuntimeError(f'{src_path} ' + '\n'.join(str(arg) for arg in exc.args))
             else:
                 raise RuntimeError('Failed to expand annotations for %s: %r' % (src_path, exc))
 
 def _generate_specific_file(src_path, dst_path, exp_id, trial_id, module):
-    with open(src_path) as src, open(dst_path, 'w') as dst:
+    with (open(src_path) as src, open(dst_path, 'w') as dst):
         try:
-            with open(os.path.expanduser('~/nni/experiments/%s/trials/%s/parameter.cfg'%(exp_id, trial_id))) as fd:
+            with open(os.path.expanduser(f'~/nni/experiments/{exp_id}/trials/{trial_id}/parameter.cfg')) as fd:
                 para_cfg = json.load(fd)
             annotated_code = specific_code_generator.parse(src.read(), para_cfg["parameters"], module)
             if annotated_code is None:
@@ -151,6 +149,6 @@ def _generate_specific_file(src_path, dst_path, exp_id, trial_id, module):
 
         except Exception as exc:  # pylint: disable=broad-except
             if exc.args:
-                raise RuntimeError(src_path + ' ' + '\n'.join(str(arg) for arg in exc.args))
+                raise RuntimeError(f'{src_path} ' + '\n'.join(str(arg) for arg in exc.args))
             else:
                 raise RuntimeError('Failed to expand annotations for %s: %r' % (src_path, exc))

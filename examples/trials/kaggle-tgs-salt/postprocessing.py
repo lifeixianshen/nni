@@ -29,18 +29,18 @@ from utils import get_crop_pad_sequence, run_length_decoding
 import settings
 
 def resize_image(image, target_size):
-    resized_image = cv2.resize(image, target_size)
-    return resized_image
+    return cv2.resize(image, target_size)
 
 def crop_image(image, target_size):
     top_crop, right_crop, bottom_crop, left_crop = get_crop_pad_sequence(image.shape[0] - target_size[0],
                                                                          image.shape[1] - target_size[1])
-    cropped_image = image[top_crop:image.shape[0] - bottom_crop, left_crop:image.shape[1] - right_crop]
-    return cropped_image
+    return image[
+        top_crop : image.shape[0] - bottom_crop,
+        left_crop : image.shape[1] - right_crop,
+    ]
 
 def binarize(image, threshold):
-    image_binarized = (image > threshold).astype(np.uint8)
-    return image_binarized
+    return (image > threshold).astype(np.uint8)
 
 def save_pseudo_label_masks(submission_file):
     df = pd.read_csv(submission_file, na_filter=False)
@@ -50,7 +50,7 @@ def save_pseudo_label_masks(submission_file):
 
     for i, row in enumerate(df.values):
         decoded_mask = run_length_decoding(row[1], (101,101))
-        filename = os.path.join(img_dir, '{}.png'.format(row[0]))
+        filename = os.path.join(img_dir, f'{row[0]}.png')
         rgb_mask = cv2.cvtColor(decoded_mask,cv2.COLOR_GRAY2RGB)
         print(filename)
         cv2.imwrite(filename, decoded_mask)

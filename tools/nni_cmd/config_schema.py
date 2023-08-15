@@ -35,7 +35,10 @@ def setNumberRange(key, keyType, start, end):
     '''check number range'''
     return And(
         And(keyType, error=SCHEMA_TYPE_ERROR % (key, keyType.__name__)),
-        And(lambda n: start <= n <= end, error=SCHEMA_RANGE_ERROR % (key, '(%s,%s)' % (start, end))),
+        And(
+            lambda n: start <= n <= end,
+            error=SCHEMA_RANGE_ERROR % (key, f'({start},{end})'),
+        ),
     )
 
 def setPathCheck(key):
@@ -407,12 +410,22 @@ machine_list_schema = {
         })]
 }
 
-LOCAL_CONFIG_SCHEMA = Schema({**common_schema, **common_trial_schema})
+LOCAL_CONFIG_SCHEMA = Schema(common_schema | common_trial_schema)
 
-REMOTE_CONFIG_SCHEMA = Schema({**common_schema, **common_trial_schema, **machine_list_schema})
+REMOTE_CONFIG_SCHEMA = Schema(
+    common_schema | common_trial_schema | machine_list_schema
+)
 
-PAI_CONFIG_SCHEMA = Schema({**common_schema, **pai_trial_schema, **pai_config_schema})
+PAI_CONFIG_SCHEMA = Schema(
+    common_schema | pai_trial_schema | pai_config_schema
+)
 
-KUBEFLOW_CONFIG_SCHEMA = Schema({**common_schema, **kubeflow_trial_schema, **kubeflow_config_schema})
+KUBEFLOW_CONFIG_SCHEMA = Schema(
+    common_schema | kubeflow_trial_schema | kubeflow_config_schema
+)
 
-FRAMEWORKCONTROLLER_CONFIG_SCHEMA = Schema({**common_schema, **frameworkcontroller_trial_schema, **frameworkcontroller_config_schema})
+FRAMEWORKCONTROLLER_CONFIG_SCHEMA = Schema(
+    common_schema
+    | frameworkcontroller_trial_schema
+    | frameworkcontroller_config_schema
+)

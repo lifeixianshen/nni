@@ -78,7 +78,7 @@ class Layer(object):
             self.input_size = 1
             self.output_size = 0
         else:
-            raise ValueError('Unsupported LayerType: {}'.format(graph_type))
+            raise ValueError(f'Unsupported LayerType: {graph_type}')
 
     def update_hash(self, layers: Iterable):
         """
@@ -91,7 +91,7 @@ class Layer(object):
         hasher.update(str(self.size).encode('ascii'))
         for i in self.input:
             if layers[i].hash_id is None:
-                raise ValueError('Hash id of layer {}: {} not generated!'.format(i, layers[i]))
+                raise ValueError(f'Hash id of layer {i}: {layers[i]} not generated!')
             hasher.update(layers[i].hash_id.encode('ascii'))
         self.hash_id = hasher.hexdigest()
 
@@ -99,15 +99,15 @@ class Layer(object):
         '''
         Set size.
         '''
-        if self.graph_type == LayerType.attention.value:
-            if self.input[0] == graph_id:
+        if self.input[0] == graph_id:
+            if self.graph_type == LayerType.attention.value:
                 self.size = size
         if self.graph_type == LayerType.rnn.value:
             self.size = size
         if self.graph_type == LayerType.self_attention.value:
             self.size = size
-        if self.graph_type == LayerType.output.value:
-            if self.size != size:
+        if self.size != size:
+            if self.graph_type == LayerType.output.value:
                 return False
         return True
 
@@ -120,7 +120,7 @@ class Layer(object):
             self.size = None
 
     def __str__(self):
-        return 'input:' + str(self.input) + ' output:' + str(self.output) + ' type:' + str(self.graph_type) + ' is_delete:' + str(self.is_delete) + ' size:' + str(self.size)
+        return f'input:{str(self.input)} output:{str(self.output)} type:{str(self.graph_type)} is_delete:{str(self.is_delete)} size:{str(self.size)}'
 
 def graph_dumps(graph):
     '''
@@ -136,11 +136,11 @@ def graph_loads(graph_json):
     for layer in graph_json['layers']:
         layer_info = Layer(layer['graph_type'], layer['input'], layer['output'], layer['size'], layer['hash_id'])
         layer_info.is_delete = layer['is_delete']
-        _logger.debug('append layer {}'.format(layer_info))
+        _logger.debug(f'append layer {layer_info}')
         layers.append(layer_info)
     graph = Graph(graph_json['max_layer_num'], graph_json['min_layer_num'], [], [], [])
     graph.layers = layers
-    _logger.debug('graph {} loaded'.format(graph))
+    _logger.debug(f'graph {graph} loaded')
     return graph
 
 class Graph(object):
@@ -153,13 +153,10 @@ class Graph(object):
         self.min_layer_num = min_layer_num
         assert min_layer_num < max_layer_num
 
-        for layer in inputs:
-            self.layers.append(layer)
-        for layer in output:
-            self.layers.append(layer)
+        self.layers.extend(iter(inputs))
+        self.layers.extend(iter(output))
         if hide is not None:
-            for layer in hide:
-                self.layers.append(layer)
+            self.layers.extend(iter(hide))
         assert self.is_legal()
 
     def is_topology(self, layers=None):
@@ -168,20 +165,18 @@ class Graph(object):
         '''
         if layers is None:
             layers = self.layers
-        layers_nodle = []
         result = []
-        for i, layer in enumerate(layers):
-            if layer.is_delete is False:
-                layers_nodle.append(i)
+        layers_nodle = [
+            i for i, layer in enumerate(layers) if layer.is_delete is False
+        ]
         while True:
             flag_break = True
             layers_toremove = []
             for layer1 in layers_nodle:
-                flag_arrive = True
-                for layer2 in layers[layer1].input:
-                    if layer2 in layers_nodle:
-                        flag_arrive = False
-                if flag_arrive is True:
+                flag_arrive = all(
+                    layer2 not in layers_nodle for layer2 in layers[layer1].input
+                )
+                if flag_arrive:
                     for layer2 in layers[layer1].output:
                         # Size is error
                         if layers[layer2].set_size(layer1, layers[layer1].size) is False:
@@ -195,9 +190,7 @@ class Graph(object):
             if flag_break:
                 break
         # There is loop in graph || some layers can't to arrive
-        if layers_nodle:
-            return False
-        return result
+        return False if layers_nodle else result
 
     def layer_num(self, layers=None):
         '''
@@ -205,12 +198,13 @@ class Graph(object):
         '''
         if layers is None:
             layers = self.layers
-        layer_num = 0
-        for layer in layers:
-            if layer.is_delete is False and layer.graph_type != LayerType.input.value\
-                and layer.graph_type != LayerType.output.value:
-                layer_num += 1
-        return layer_num
+        return sum(
+            1
+            for layer in layers
+            if layer.is_delete is False
+            and layer.graph_type != LayerType.input.value
+            and layer.graph_type != LayerType.output.value
+        )
 
     def is_legal(self, layers=None):
         '''
@@ -231,10 +225,7 @@ class Graph(object):
             return False
 
         # There is loop in graph || some layers can't to arrive
-        if self.is_topology(layers) is False:
-            return False
-
-        return True
+        return self.is_topology(layers) is not False
 
     def update_hash(self):
         """
@@ -258,18 +249,16 @@ class Graph(object):
         '''
         types = []
         if self.layer_num() < self.max_layer_num:
-            types.append(0)
-            types.append(1)
+            types.extend((0, 1))
         if self.layer_num() > self.min_layer_num and only_add is False:
-            types.append(2)
-            types.append(3)
+            types.extend((2, 3))
         # 0 : add a layer , delete a edge
         # 1 : add a layer , change a edge
         # 2 : delete a layer, delete a edge
         # 3 : delete a layer, change a edge
         graph_type = random.choice(types)
         layer_type = random.choice([LayerType.attention.value,\
-            LayerType.self_attention.value, LayerType.rnn.value])
+                LayerType.self_attention.value, LayerType.rnn.value])
         layers = copy.deepcopy(self.layers)
         cnt_try = 0
         while True:
@@ -282,8 +271,10 @@ class Graph(object):
                         layers_in.append(i)
                     if layer.graph_type != LayerType.input.value:
                         layers_out.append(i)
-                    if layer.graph_type != LayerType.output.value\
-                            and layer.graph_type != LayerType.input.value:
+                    if layer.graph_type not in [
+                        LayerType.output.value,
+                        LayerType.input.value,
+                    ]:
                         layers_del.append(i)
             if graph_type <= 1:
                 new_id = len(layers)
@@ -329,8 +320,8 @@ class Graph(object):
         self.update_hash()
 
     def __str__(self):
-        info = ""
-        for l_id, layer in enumerate(self.layers):
-            if layer.is_delete is False:
-                info += 'id:%d ' % l_id + str(layer) + '\n'
-        return info
+        return "".join(
+            'id:%d ' % l_id + str(layer) + '\n'
+            for l_id, layer in enumerate(self.layers)
+            if layer.is_delete is False
+        )

@@ -158,7 +158,7 @@ else:
             return oneshot_mode(*args, tf)
         if mode == 'darts_mode':
             return darts_mode(*args, tf)
-        raise RuntimeError('Unrecognized mode: %s' % mode)
+        raise RuntimeError(f'Unrecognized mode: {mode}')
 
     def _get_param(key):
         if trial.get_current_parameter() is None:

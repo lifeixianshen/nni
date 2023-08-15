@@ -67,5 +67,4 @@ class DoReFaQuantizer(Quantizer):
         # use gradient_override_map to change round to idetity for gradient
         with tf.get_default_graph().gradient_override_map({'Round': 'Identity'}):
             qw = tf.round(b*scale)/scale
-        r_qw = 2 * qw - 1
-        return r_qw
+        return 2 * qw - 1

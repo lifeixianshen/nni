@@ -277,7 +277,7 @@ class StubConv(StubWeightBiasLayer):
             ret[index] = (
                 int((dim + 2 * self.padding - self.kernel_size) / self.stride) + 1
             )
-        ret = ret + [self.filters]
+        ret += [self.filters]
         return tuple(ret)
 
     def import_weights_keras(self, keras_layer):
@@ -374,11 +374,8 @@ class StubConcatenate(StubAggregateLayer):
     """
     @property
     def output_shape(self):
-        ret = 0
-        for current_input in self.input:
-            ret += current_input.shape[-1]
-        ret = self.input[0].shape[:-1] + (ret,)
-        return ret
+        ret = sum(current_input.shape[-1] for current_input in self.input)
+        return self.input[0].shape[:-1] + (ret,)
 
     def to_real_layer(self):
         return TorchConcatenate()
@@ -502,8 +499,7 @@ class StubPooling(StubLayer):
         ret = tuple()
         for dim in self.input.shape[:-1]:
             ret = ret + (max(int(dim / self.kernel_size), 1),)
-        ret = ret + (self.input.shape[-1],)
-        return ret
+        return ret + (self.input.shape[-1],)
 
     @abstractmethod
     def to_real_layer(self):

@@ -19,10 +19,7 @@ FLAGS = None
 
 class MnistNetwork(object):
     def __init__(self, params, feature_size = 784):
-        config = []
-
-        for i in range(4):
-            config.append(params['layer'+str(i)])
+        config = [params[f'layer{str(i)}'] for i in range(4)]
         self.config = config
         self.feature_size = feature_size
         self.label_size = 10
@@ -31,17 +28,13 @@ class MnistNetwork(object):
     def is_expand_dim(self, input):
         # input is a tensor
         shape = len(input.get_shape().as_list())
-        if shape < 4:
-            return True
-        return False
+        return shape < 4
 
 
     def is_flatten(self, input):
         # input is a tensor
         shape = len(input.get_shape().as_list())
-        if shape > 2:
-            return True
-        return False
+        return shape > 2
 
 
     def get_layer(self, layer_config, input, in_height, in_width, id):
@@ -61,7 +54,7 @@ class MnistNetwork(object):
             return tf.nn.avg_pool(input, ksize=[1, h, w, 1], strides=[1, 1, 1, 1], padding='SAME')
 
         print('error:', layer_config)
-        raise Exception('%s layer is illegal'%layer_config[0])
+        raise Exception(f'{layer_config[0]} layer is illegal')
 
 
     def build_network(self):
@@ -167,7 +160,7 @@ if __name__ == '__main__':
         RCV_PARAMS = parse_init_json(data)
         logger.debug(RCV_PARAMS)
         params = vars(get_params())
-        params.update(RCV_PARAMS)
+        params |= RCV_PARAMS
         print(RCV_PARAMS)
 
         main(params)

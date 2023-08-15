@@ -153,9 +153,7 @@ class DotAttention:
         if len(h_shape) == 2:
             prob = tf.squeeze(prob, axis=[0])
             tmp = tf.squeeze(tmp, axis=[0])
-        if return_logits:
-            return prob, tmp
-        return prob
+        return (prob, tmp) if return_logits else prob
 
     def get_att(self, s, prob):
         '''
@@ -165,5 +163,4 @@ class DotAttention:
         :return: [batch_size, src_dim] or [tgt_sequence_length, batch_size, src_dim]
         '''
         buf = s * tf.expand_dims(prob, axis=-1)
-        att = tf.reduce_sum(buf, axis=-3)
-        return att
+        return tf.reduce_sum(buf, axis=-3)

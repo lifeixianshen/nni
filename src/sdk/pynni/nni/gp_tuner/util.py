@@ -147,9 +147,7 @@ class UtilityFunction():
         self._xi = xi
 
         if kind not in ['ucb', 'ei', 'poi']:
-            err = "The utility function " \
-                "{} has not been implemented, " \
-                "please choose one of ucb, ei, or poi.".format(kind)
+            err = f"The utility function {kind} has not been implemented, please choose one of ucb, ei, or poi."
             raise NotImplementedError(err)
         self._kind = kind
 
@@ -174,9 +172,7 @@ class UtilityFunction():
             return self._ucb(x, gp, self._kappa)
         if self._kind == 'ei':
             return self._ei(x, gp, y_max, self._xi)
-        if self._kind == 'poi':
-            return self._poi(x, gp, y_max, self._xi)
-        return None
+        return self._poi(x, gp, y_max, self._xi) if self._kind == 'poi' else None
 
     @staticmethod
     def _ucb(x, gp, kappa):

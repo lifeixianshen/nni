@@ -59,7 +59,7 @@ def do_tta_predict(args, model, ckp_path, tta_num=4):
                 else:
                     outputs = torch.cat([outputs, output.squeeze()], 0)
 
-                print('{} / {}'.format(args.batch_size*(i+1), test_loader.num), end='\r')
+                print(f'{args.batch_size * (i + 1)} / {test_loader.num}', end='\r')
         outputs = outputs.cpu().numpy()
         # flip back masks
         if flip_index == 1:
@@ -72,7 +72,7 @@ def do_tta_predict(args, model, ckp_path, tta_num=4):
         #print(outputs.shape)
         preds.append(outputs)
 
-    parent_dir = ckp_path+'_out'
+    parent_dir = f'{ckp_path}_out'
     if not os.path.exists(parent_dir):
         os.makedirs(parent_dir)
     np_file = os.path.join(parent_dir, 'pred.npy')
@@ -83,7 +83,7 @@ def do_tta_predict(args, model, ckp_path, tta_num=4):
     return model_pred_result, meta
 
 def predict(args, model, checkpoint, out_file):
-    print('predicting {}...'.format(checkpoint))
+    print(f'predicting {checkpoint}...')
     pred, meta = do_tta_predict(args, model, checkpoint, tta_num=2)
     print(pred.shape)
     y_pred_test = generate_preds(pred, (settings.ORIG_H, settings.ORIG_W), pad_mode=args.pad_mode)
@@ -166,17 +166,27 @@ def predict_model(args):
     model = eval(args.model_name)(args.layers, num_filters=args.nf)
     model_subdir = args.pad_mode
     if args.meta_version == 2:
-        model_subdir = args.pad_mode+'_meta2'
+        model_subdir = f'{args.pad_mode}_meta2'
     if args.exp_name is None:
-        model_file = os.path.join(settings.MODEL_DIR, model.name,model_subdir, 'best_{}.pth'.format(args.ifold))
+        model_file = os.path.join(
+            settings.MODEL_DIR,
+            model.name,
+            model_subdir,
+            f'best_{args.ifold}.pth',
+        )
     else:
-        model_file = os.path.join(settings.MODEL_DIR, args.exp_name, model.name, model_subdir, 'best_{}.pth'.format(args.ifold))
+        model_file = os.path.join(
+            settings.MODEL_DIR,
+            args.exp_name,
+            model.name,
+            model_subdir,
+            f'best_{args.ifold}.pth',
+        )
 
-    if os.path.exists(model_file):
-        print('loading {}...'.format(model_file))
-        model.load_state_dict(torch.load(model_file))
-    else:
-        raise ValueError('model file not found: {}'.format(model_file))
+    if not os.path.exists(model_file):
+        raise ValueError(f'model file not found: {model_file}')
+    print(f'loading {model_file}...')
+    model.load_state_dict(torch.load(model_file))
     model = model.cuda()
     predict(args, model, model_file, args.sub_file)
 

@@ -33,11 +33,11 @@ ASSESSOR_LIST = ['Medianstop']
 
 
 def get_config_file_path():
-    if sys.platform == 'win32':
-        config_file = osp.join('tuner_test', 'local_win32.yml')
-    else:
-        config_file = osp.join('tuner_test', 'local.yml')
-    return config_file
+    return (
+        osp.join('tuner_test', 'local_win32.yml')
+        if sys.platform == 'win32'
+        else osp.join('tuner_test', 'local.yml')
+    )
 
 def switch(dispatch_type, dispatch_name):
     '''Change dispatch in config.yml'''
@@ -45,14 +45,12 @@ def switch(dispatch_type, dispatch_name):
     experiment_config = get_yml_content(config_path)
     if dispatch_name in ['GridSearch', 'BatchTuner', 'Random']:
         experiment_config[dispatch_type.lower()] = {
-            'builtin' + dispatch_type + 'Name': dispatch_name
+            f'builtin{dispatch_type}Name': dispatch_name
         }
     else:
         experiment_config[dispatch_type.lower()] = {
-            'builtin' + dispatch_type + 'Name': dispatch_name,
-            'classArgs': {
-                'optimize_mode': 'maximize'
-            }
+            f'builtin{dispatch_type}Name': dispatch_name,
+            'classArgs': {'optimize_mode': 'maximize'},
         }
     if dispatch_name == 'BatchTuner':
         experiment_config['searchSpacePath'] = 'batchtuner_search_space.json'
@@ -64,7 +62,7 @@ def test_builtin_dispatcher(dispatch_type, dispatch_name):
     '''test a dispatcher whose type is dispatch_type and name is dispatch_name'''
     switch(dispatch_type, dispatch_name)
 
-    print('Testing %s...' % dispatch_name)
+    print(f'Testing {dispatch_name}...')
     proc = subprocess.run(['nnictl', 'create', '--config', get_config_file_path()])
     assert proc.returncode == 0, '`nnictl create` failed with code %d' % proc.returncode
 
@@ -81,16 +79,19 @@ def test_builtin_dispatcher(dispatch_type, dispatch_name):
 
 def run(dispatch_type):
     '''test all dispatchers whose type is dispatch_type'''
-    assert dispatch_type in ['Tuner', 'Assessor'], 'Unsupported dispatcher type: %s' % (dispatch_type)
+    assert dispatch_type in [
+        'Tuner',
+        'Assessor',
+    ], f'Unsupported dispatcher type: {dispatch_type}'
     dipsatcher_list = TUNER_LIST if dispatch_type == 'Tuner' else ASSESSOR_LIST
     for dispatcher_name in dipsatcher_list:
         try:
             # Sleep here to make sure previous stopped exp has enough time to exit to avoid port conflict
             time.sleep(6)
             test_builtin_dispatcher(dispatch_type, dispatcher_name)
-            print(GREEN + 'Test %s %s: TEST PASS' % (dispatcher_name, dispatch_type) + CLEAR)
+            print(f'{GREEN}Test {dispatcher_name} {dispatch_type}: TEST PASS{CLEAR}')
         except Exception as error:
-            print(RED + 'Test %s %s: TEST FAIL' % (dispatcher_name, dispatch_type) + CLEAR)
+            print(f'{RED}Test {dispatcher_name} {dispatch_type}: TEST FAIL{CLEAR}')
             print('%r' % error)
             traceback.print_exc()
             raise error

@@ -53,7 +53,7 @@ class Individual(object):
         self.shared_ids = {layer.hash_id for layer in self.config.layers if layer.is_delete is False}
 
     def __str__(self):
-        return "info: " + str(self.info) + ", config :" + str(self.config) + ", result: " + str(self.result)
+        return f"info: {str(self.info)}, config :{str(self.config)}, result: {str(self.result)}"
 
     def mutation(self, indiv_id: int, graph_cfg: Graph = None, info=None):
         self.result = None
@@ -157,21 +157,23 @@ class CustomerTuner(Tuner):
                 which tells tuner & trial code whether to share trained weights or not.
         `shared_id` is the hash_id of layers that should be shared with previously trained model.
         """
-        logger.debug('acquiring lock for param {}'.format(parameter_id))
+        logger.debug(f'acquiring lock for param {parameter_id}')
         self.thread_lock.acquire()
         logger.debug('lock for current thread acquired')
         if not self.population:
             logger.debug("the len of poplution lower than zero.")
             raise Exception('The population is empty')
-        pos = -1
-        for i in range(len(self.population)):
-            if self.population[i].result is None:
-                pos = i
-                break
+        pos = next(
+            (
+                i
+                for i in range(len(self.population))
+                if self.population[i].result is None
+            ),
+            -1,
+        )
         if pos != -1:
             indiv = copy.deepcopy(self.population[pos])
             self.population.pop(pos)
-            graph_param = json.loads(graph_dumps(indiv.config))
         else:
             random.shuffle(self.population)
             if self.population[0].result < self.population[1].result:
@@ -179,7 +181,7 @@ class CustomerTuner(Tuner):
             indiv = copy.deepcopy(self.population[0])
             self.population.pop(1)
             indiv.mutation(indiv_id = self.generate_new_id())
-            graph_param = json.loads(graph_dumps(indiv.config))
+        graph_param = json.loads(graph_dumps(indiv.config))
         param_json = {
             'graph': graph_param,
             'restore_dir': self.save_dir(indiv.parent_id),
@@ -191,9 +193,11 @@ class CustomerTuner(Tuner):
         logger.debug('releasing lock')
         self.thread_lock.release()
         if indiv.parent_id is not None:
-            logger.debug("new trial {} pending on parent experiment {}".format(indiv.indiv_id, indiv.parent_id))
+            logger.debug(
+                f"new trial {indiv.indiv_id} pending on parent experiment {indiv.parent_id}"
+            )
             self.events[indiv.parent_id].wait()
-        logger.debug("trial {} ready".format(indiv.indiv_id))
+        logger.debug(f"trial {indiv.indiv_id} ready")
         return param_json
 
     def receive_trial_result(self, parameter_id, parameters, value, **kwargs):
@@ -203,7 +207,7 @@ class CustomerTuner(Tuner):
         parameters : dict of parameters
         value: final metrics of the trial, including reward
         '''
-        logger.debug('acquiring lock for param {}'.format(parameter_id))
+        logger.debug(f'acquiring lock for param {parameter_id}')
         self.thread_lock.acquire()
         logger.debug('lock for current acquired')
         reward = extract_scalar_reward(value)

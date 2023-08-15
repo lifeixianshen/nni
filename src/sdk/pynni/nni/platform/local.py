@@ -59,19 +59,24 @@ def get_next_parameter():
     global _param_index
     params_file_name = ''
     if _multiphase in ('true', 'True'):
-        params_file_name = ('parameter_{}.cfg'.format(_param_index), 'parameter.cfg')[_param_index == 0]
+        params_file_name = (
+            f'parameter_{_param_index}.cfg',
+            'parameter.cfg'[_param_index == 0],
+        )
+    elif _param_index > 0:
+        return None
+    elif _param_index == 0:
+        params_file_name = 'parameter.cfg'
     else:
-        if _param_index > 0:
-            return None
-        elif _param_index == 0:
-            params_file_name = 'parameter.cfg'
-        else:
-            raise AssertionError('_param_index value ({}) should >=0'.format(_param_index))
+        raise AssertionError(f'_param_index value ({_param_index}) should >=0')
 
     params_filepath = os.path.join(_sysdir, params_file_name)
     if not os.path.isfile(params_filepath):
         request_next_parameter()
-    while not (os.path.isfile(params_filepath) and os.path.getsize(params_filepath) > 0):
+    while (
+        not os.path.isfile(params_filepath)
+        or os.path.getsize(params_filepath) <= 0
+    ):
         time.sleep(3)
     params_file = open(params_filepath, 'r')
     params = json.load(params_file)
@@ -82,7 +87,7 @@ def send_metric(string):
     if _nni_platform != 'local':
         data = (string).encode('utf8')
         assert len(data) < 1000000, 'Metric too long'
-        print('NNISDK_ME%s' % (data), flush=True)
+        print(f'NNISDK_ME{data}', flush=True)
     else:
         data = (string + '\n').encode('utf8')
         assert len(data) < 1000000, 'Metric too long'

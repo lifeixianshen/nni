@@ -57,8 +57,7 @@ class MnistNetwork(object):
             try:
                 input_dim = int(math.sqrt(self.x_dim))
             except:
-                print(
-                    'input dim cannot be sqrt and reshape. input dim: ' + str(self.x_dim))
+                print(f'input dim cannot be sqrt and reshape. input dim: {str(self.x_dim)}')
                 logger.debug(
                     'input dim cannot be sqrt and reshape. input dim: %s', str(self.x_dim))
                 raise
@@ -90,12 +89,10 @@ class MnistNetwork(object):
         # is down to 7x7x64 feature maps -- maps this to 1024 features.
         last_dim = int(input_dim / (self.pool_size * self.pool_size))
         with tf.name_scope('fc1'):
-            w_fc1 = weight_variable(
-                [last_dim * last_dim * self.channel_2_num, self.hidden_size])
+            w_fc1 = weight_variable([last_dim**2 * self.channel_2_num, self.hidden_size])
             b_fc1 = bias_variable([self.hidden_size])
 
-        h_pool2_flat = tf.reshape(
-            h_pool2, [-1, last_dim * last_dim * self.channel_2_num])
+        h_pool2_flat = tf.reshape(h_pool2, [-1, last_dim**2 * self.channel_2_num])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, w_fc1) + b_fc1)
 
         # Dropout - controls the complexity of the model, prevents co-adaptation of features.
@@ -231,7 +228,7 @@ if __name__ == '__main__':
         tuner_params = nni.get_next_parameter()
         logger.debug(tuner_params)
         params = vars(get_params())
-        params.update(tuner_params)
+        params |= tuner_params
         main(params)
     except Exception as exception:
         logger.exception(exception)

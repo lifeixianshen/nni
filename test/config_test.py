@@ -36,7 +36,7 @@ def gen_new_config(config_file, training_service='local'):
     should be deleted after testing.
     '''
     config = get_yml_content(config_file)
-    new_config_file = config_file + '.tmp'
+    new_config_file = f'{config_file}.tmp'
 
     it_config = get_yml_content('training_service.yml')
 
@@ -97,8 +97,7 @@ def run(args):
         config_files = args.config.split(',')
 
     if args.exclude is not None:
-        exclude_paths = args.exclude.split(',')
-        if exclude_paths:
+        if exclude_paths := args.exclude.split(','):
             for exclude_path in exclude_paths:
                 config_files = [x for x in config_files if exclude_path not in x]
     print(config_files)
@@ -107,12 +106,12 @@ def run(args):
         try:
             # sleep 5 seconds here, to make sure previous stopped exp has enough time to exit to avoid port conflict
             time.sleep(5)
-            print(GREEN + 'Testing:' + config_file + CLEAR)
+            print(f'{GREEN}Testing:{config_file}{CLEAR}')
             begin_time = time.time()
             run_test(config_file, args.ts, args.local_gpu)
             print(GREEN + 'Test %s: TEST PASS IN %d mins' % (config_file, (time.time() - begin_time)/60) + CLEAR)
         except Exception as error:
-            print(RED + 'Test %s: TEST FAIL' % (config_file) + CLEAR)
+            print(f'{RED}Test {config_file}: TEST FAIL{CLEAR}')
             print('%r' % error)
             traceback.print_exc()
             raise error

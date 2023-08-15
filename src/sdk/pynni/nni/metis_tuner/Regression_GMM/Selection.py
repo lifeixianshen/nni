@@ -56,13 +56,14 @@ def selection_r(x_bounds,
     '''
     minimize_starting_points = clusteringmodel_gmm_good.sample(n_samples=num_starting_points)
 
-    outputs = selection(x_bounds, x_types,
-                        clusteringmodel_gmm_good,
-                        clusteringmodel_gmm_bad,
-                        minimize_starting_points[0],
-                        minimize_constraints_fun)
-
-    return outputs
+    return selection(
+        x_bounds,
+        x_types,
+        clusteringmodel_gmm_good,
+        clusteringmodel_gmm_bad,
+        minimize_starting_points[0],
+        minimize_constraints_fun,
+    )
 
 
 def selection(x_bounds,
@@ -74,12 +75,14 @@ def selection(x_bounds,
     '''
     Select the lowest mu value
     '''
-    results = lib_acquisition_function.next_hyperparameter_lowest_mu(
-        _ratio_scores, [clusteringmodel_gmm_good, clusteringmodel_gmm_bad],
-        x_bounds, x_types, minimize_starting_points,
-        minimize_constraints_fun=minimize_constraints_fun)
-
-    return results
+    return lib_acquisition_function.next_hyperparameter_lowest_mu(
+        _ratio_scores,
+        [clusteringmodel_gmm_good, clusteringmodel_gmm_bad],
+        x_bounds,
+        x_types,
+        minimize_starting_points,
+        minimize_constraints_fun=minimize_constraints_fun,
+    )
 
 
 def _rand_with_constraints(x_bounds, x_types):
@@ -107,5 +110,5 @@ def _minimize_constraints_fun_summation(x):
     '''
     Minimize constraints fun summation
     '''
-    summation = sum([x[i] for i in CONSTRAINT_PARAMS_IDX])
+    summation = sum(x[i] for i in CONSTRAINT_PARAMS_IDX)
     return CONSTRAINT_UPPERBOUND >= summation >= CONSTRAINT_LOWERBOUND

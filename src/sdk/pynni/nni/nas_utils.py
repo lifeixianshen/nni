@@ -49,9 +49,9 @@ def classic_mode(
     chosen_layer, chosen_inputs = _get_layer_and_inputs_from_tuner(mutable_id, mutable_layer_id,
                                                                    list(optional_inputs.keys()))
     real_chosen_inputs = [optional_inputs[input_name] for input_name in chosen_inputs]
-    layer_out = funcs[chosen_layer]([fixed_inputs, real_chosen_inputs], **funcs_args[chosen_layer])
-
-    return layer_out
+    return funcs[chosen_layer](
+        [fixed_inputs, real_chosen_inputs], **funcs_args[chosen_layer]
+    )
 
 
 def enas_mode(
@@ -67,22 +67,23 @@ def enas_mode(
     This is implemented by masking inputs and branching ops.
     Specifically, based on the received subgraph (through nni.get_next_parameter),
     it can be known which inputs should be masked and which op should be executed.'''
-    name_prefix = "{}_{}".format(mutable_id, mutable_layer_id)
+    name_prefix = f"{mutable_id}_{mutable_layer_id}"
     # store namespace
     _namespace[mutable_id] = True
-    _namespace[name_prefix] = dict()
+    _namespace[name_prefix] = {}
     _namespace[name_prefix]['funcs'] = list(funcs)
     _namespace[name_prefix]['optional_inputs'] = list(optional_inputs)
     # create tensorflow variables as 1/0 signals used to form subgraph
-    name_for_optional_inputs = name_prefix + '_optional_inputs'
-    name_for_funcs = name_prefix + '_funcs'
-    _tf_variables[name_prefix] = dict()
-    _tf_variables[name_prefix]['optional_inputs'] = tf.get_variable(
-        name_for_optional_inputs,
-        [len(optional_inputs)],
-        dtype=tf.bool,
-        trainable=False
-    )
+    name_for_optional_inputs = f'{name_prefix}_optional_inputs'
+    name_for_funcs = f'{name_prefix}_funcs'
+    _tf_variables[name_prefix] = {
+        'optional_inputs': tf.get_variable(
+            name_for_optional_inputs,
+            [len(optional_inputs)],
+            dtype=tf.bool,
+            trainable=False,
+        )
+    }
     _tf_variables[name_prefix]['funcs'] = tf.get_variable(
         name_for_funcs, [], dtype=tf.int64, trainable=False)
 
@@ -97,14 +98,12 @@ def enas_mode(
     real_chosen_inputs = tf.boolean_mask(
         real_optional_inputs_value, _tf_variables[name_prefix]['optional_inputs'])
     # build tensorflow graph of different branches by using tf.case
-    branches = dict()
+    branches = {}
     func_output = None
     for func_id in range(len(funcs)):
         func_output = real_func_value[func_id]([fixed_inputs, real_chosen_inputs], **real_funcs_args[func_id])
         branches[tf.equal(_tf_variables[name_prefix]['funcs'], func_id)] = lambda: func_output
-    layer_out = tf.case(branches, exclusive=True, default=lambda: func_output)
-
-    return layer_out
+    return tf.case(branches, exclusive=True, default=lambda: func_output)
 
 
 def oneshot_mode(
@@ -137,9 +136,7 @@ def oneshot_mode(
     rate = 0.01 ** (1 / output_num)
     noise_shape = [output_num] + [1] * len(layer_outs[0].get_shape())
     layer_outs = tf.nn.dropout(layer_outs, rate=rate, noise_shape=noise_shape)
-    layer_out = tf.reduce_sum(layer_outs, axis=0)
-
-    return layer_out
+    return tf.reduce_sum(layer_outs, axis=0)
 
 
 def darts_mode(
@@ -155,13 +152,13 @@ def darts_mode(
     layer_outs = [func([fixed_inputs, optional_inputs], **funcs_args[func_name])
                   for func_name, func in funcs.items()]
     # Create architecture weights for every func(op)
-    var_name = "{}_{}_arch_weights".format(mutable_id, mutable_layer_id)
+    var_name = f"{mutable_id}_{mutable_layer_id}_arch_weights"
     arch_logits = tf.get_variable(var_name, shape=[len(funcs)], trainable=False)
     _arch_logits_list.append(arch_logits)
     arch_weights = tf.nn.softmax(arch_logits)
-    layer_out = tf.add_n([arch_weights[idx] * out for idx, out in enumerate(layer_outs)])
-
-    return layer_out
+    return tf.add_n(
+        [arch_weights[idx] * out for idx, out in enumerate(layer_outs)]
+    )
 
 
 def reload_tensorflow_variables(tf, session):
@@ -184,7 +181,7 @@ def reload_tensorflow_variables(tf, session):
         if mutable_id not in _namespace:
             _logger.warning("%s not found in name space", mutable_id)
             continue
-        name_prefix = "{}_{}".format(mutable_id, mutable_layer_id)
+        name_prefix = f"{mutable_id}_{mutable_layer_id}"
         # get optional inputs names
         optional_inputs = _namespace[name_prefix]['optional_inputs']
         # extract layer information from the subgraph sampled by tuner
@@ -200,16 +197,14 @@ def reload_tensorflow_variables(tf, session):
 def _construct_general_key(mutable_id, mutable_layer_id):
     # Mutable layer key in a general (search space) format
     # that is, prefix/mutable_id/mutable_layer_id
-    return _MUTABLE_LAYER_SPACE_PREFIX + "/" + mutable_id + "/" + mutable_layer_id
+    return f"{_MUTABLE_LAYER_SPACE_PREFIX}/{mutable_id}/{mutable_layer_id}"
 
 
 def _decompose_general_key(key):
-    # inverse operation of above
     if not key.startswith(_MUTABLE_LAYER_SPACE_PREFIX):
         return None, None
-    else:
-        _, mutable_id, mutable_layer_id = key.split("/", maxsplit=2)
-        return mutable_id, mutable_layer_id
+    _, mutable_id, mutable_layer_id = key.split("/", maxsplit=2)
+    return mutable_id, mutable_layer_id
 
 
 def darts_training(tf, session, loss, feed_dict):
@@ -241,13 +236,13 @@ def _get_layer_and_inputs_from_tuner(mutable_id, mutable_layer_id, optional_inpu
         # Try to find converted NAS parameters
         params = trial.get_current_parameter()
         expected_prefix = _construct_general_key(mutable_id, mutable_layer_id)
-        chosen_layer = params[expected_prefix + "/layer_choice"]
+        chosen_layer = params[f"{expected_prefix}/layer_choice"]
 
         # find how many to choose
-        optional_input_size = int(params[expected_prefix + "/optional_input_size"])  # convert uniform to randint
+        optional_input_size = int(params[f"{expected_prefix}/optional_input_size"])
 
         # find who to choose, can duplicate
-        optional_input_state = params[expected_prefix + "/optional_input_chosen_state"]
+        optional_input_state = params[f"{expected_prefix}/optional_input_chosen_state"]
         chosen_inputs = []
         # make sure dict -> list produce stable result by sorting
         optional_inputs_keys = sorted(optional_inputs)
@@ -267,7 +262,7 @@ def convert_nas_search_space(search_space):
     """
     if not isinstance(search_space, dict):
         return search_space
-    ret = dict()
+    ret = {}
     for k, v in search_space.items():
         if "_type" not in v:
             # this should not happen
@@ -289,7 +284,7 @@ def convert_nas_search_space(search_space):
                 if layer_data.get("layer_choice"):  # filter out empty choice and no choice
                     layer_choice = layer_data["layer_choice"]
                 else:
-                    raise ValueError("No layer choice found in %s" % layer_key)
+                    raise ValueError(f"No layer choice found in {layer_key}")
 
                 if layer_data.get("optional_input_size"):
                     input_size = layer_data["optional_input_size"]
@@ -309,18 +304,21 @@ def convert_nas_search_space(search_space):
                     total_state_size = 1
 
                 converted = {
-                    layer_key + "/layer_choice": {
-                        "_type": "choice", "_value": layer_choice
+                    f"{layer_key}/layer_choice": {
+                        "_type": "choice",
+                        "_value": layer_choice,
                     },
-                    layer_key + "/optional_input_size": {
-                        "_type": "randint", "_value": input_size
+                    f"{layer_key}/optional_input_size": {
+                        "_type": "randint",
+                        "_value": input_size,
                     },
-                    layer_key + "/optional_input_chosen_state": {
-                        "_type": "randint", "_value": [0, total_state_size]
-                    }
+                    f"{layer_key}/optional_input_chosen_state": {
+                        "_type": "randint",
+                        "_value": [0, total_state_size],
+                    },
                 }
                 _logger.info(converted)
-                ret.update(converted)
+                ret |= converted
 
     return ret
 

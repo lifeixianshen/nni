@@ -39,14 +39,13 @@ def load_data():
 
 def get_default_parameters():
     '''get default parameters'''
-    params = {
+    return {
         'C': 1.0,
         'kernel': 'linear',
         'degree': 3,
         'gamma': 0.01,
-        'coef0': 0.01
+        'coef0': 0.01,
     }
-    return params
 
 def get_model(PARAMS):
     '''Get model according to parameters'''
@@ -63,7 +62,7 @@ def run(X_train, X_test, y_train, y_test, PARAMS):
     '''Train model and predict result'''
     model.fit(X_train, y_train)
     score = model.score(X_test, y_test)
-    LOG.debug('score: %s' % score)
+    LOG.debug(f'score: {score}')
     nni.report_final_result(score)
 
 if __name__ == '__main__':

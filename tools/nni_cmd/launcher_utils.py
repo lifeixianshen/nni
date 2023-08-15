@@ -35,7 +35,7 @@ def parse_relative_path(root_path, experiment_config, key):
     '''Change relative path to absolute path'''
     if experiment_config.get(key) and not os.path.isabs(experiment_config.get(key)):
         absolute_path = os.path.join(root_path, experiment_config.get(key))
-        print_normal('expand %s: %s to %s ' % (key, experiment_config[key], absolute_path))
+        print_normal(f'expand {key}: {experiment_config[key]} to {absolute_path} ')
         experiment_config[key] = absolute_path
 
 def parse_time(time):
@@ -128,34 +128,35 @@ def validate_search_space_content(experiment_config):
 
 def validate_kubeflow_operators(experiment_config):
     '''Validate whether the kubeflow operators are valid'''
-    if experiment_config.get('kubeflowConfig'):
-        if experiment_config.get('kubeflowConfig').get('operator') == 'tf-operator':
-            if experiment_config.get('trial').get('master') is not None:
-                print_error('kubeflow with tf-operator can not set master')
-                exit(1)
-            if experiment_config.get('trial').get('worker') is None:
-                print_error('kubeflow with tf-operator must set worker')
-                exit(1)
-        elif experiment_config.get('kubeflowConfig').get('operator') == 'pytorch-operator':
-            if experiment_config.get('trial').get('ps') is not None:
-                print_error('kubeflow with pytorch-operator can not set ps')
-                exit(1)
-            if experiment_config.get('trial').get('master') is None:
-                print_error('kubeflow with pytorch-operator must set master')
-                exit(1)
+    if not experiment_config.get('kubeflowConfig'):
+        return
+    if experiment_config.get('kubeflowConfig').get('operator') == 'tf-operator':
+        if experiment_config.get('trial').get('master') is not None:
+            print_error('kubeflow with tf-operator can not set master')
+            exit(1)
+        if experiment_config.get('trial').get('worker') is None:
+            print_error('kubeflow with tf-operator must set worker')
+            exit(1)
+    elif experiment_config.get('kubeflowConfig').get('operator') == 'pytorch-operator':
+        if experiment_config.get('trial').get('ps') is not None:
+            print_error('kubeflow with pytorch-operator can not set ps')
+            exit(1)
+        if experiment_config.get('trial').get('master') is None:
+            print_error('kubeflow with pytorch-operator must set master')
+            exit(1)
 
-        if experiment_config.get('kubeflowConfig').get('storage') == 'nfs':
-            if experiment_config.get('kubeflowConfig').get('nfs') is None:
-                print_error('please set nfs configuration!')
-                exit(1)
-        elif experiment_config.get('kubeflowConfig').get('storage') == 'azureStorage':
-            if experiment_config.get('kubeflowConfig').get('azureStorage') is None:
-                print_error('please set azureStorage configuration!')
-                exit(1)
-        elif experiment_config.get('kubeflowConfig').get('storage') is None:
-            if experiment_config.get('kubeflowConfig').get('azureStorage'):
-                print_error('please set storage type!')
-                exit(1)
+    if experiment_config.get('kubeflowConfig').get('storage') == 'nfs':
+        if experiment_config.get('kubeflowConfig').get('nfs') is None:
+            print_error('please set nfs configuration!')
+            exit(1)
+    elif experiment_config.get('kubeflowConfig').get('storage') == 'azureStorage':
+        if experiment_config.get('kubeflowConfig').get('azureStorage') is None:
+            print_error('please set azureStorage configuration!')
+            exit(1)
+    elif experiment_config.get('kubeflowConfig').get('storage') is None:
+        if experiment_config.get('kubeflowConfig').get('azureStorage'):
+            print_error('please set storage type!')
+            exit(1)
 
 def validate_common_content(experiment_config):
     '''Validate whether the common values in experiment_config is valid'''
@@ -182,7 +183,7 @@ def validate_common_content(experiment_config):
     }
     try:
         schema_dict.get(experiment_config['trainingServicePlatform']).validate(experiment_config)
-        for separate_key in separate_schema_dict.keys():
+        for separate_key in separate_schema_dict:
             if experiment_config.get(separate_key):
                 if experiment_config[separate_key].get(separate_builtInName_dict[separate_key]):
                     validate = False
@@ -192,7 +193,7 @@ def validate_common_content(experiment_config):
                             validate = True
                             break
                     if not validate:
-                        print_error('%s %s error!' % (separate_key, separate_builtInName_dict[separate_key]))
+                        print_error(f'{separate_key} {separate_builtInName_dict[separate_key]} error!')
                         exit(1)
                 else:
                     Schema({**separate_schema_dict[separate_key]['customized']}).validate(experiment_config[separate_key])
@@ -222,10 +223,10 @@ def validate_customized_file(experiment_config, spec_key):
         if not os.path.exists(os.path.join(
                 experiment_config[spec_key]['codeDir'],
                 experiment_config[spec_key]['classFileName'])):
-            print_error('%s file directory is not valid!'%(spec_key))
+            print_error(f'{spec_key} file directory is not valid!')
             exit(1)
     else:
-        print_error('%s file directory is not valid!'%(spec_key))
+        print_error(f'{spec_key} file directory is not valid!')
         exit(1)
 
 def parse_tuner_content(experiment_config):

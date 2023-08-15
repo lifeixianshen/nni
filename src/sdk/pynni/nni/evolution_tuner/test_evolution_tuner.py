@@ -60,9 +60,7 @@ class EvolutionTunerTestCase(TestCase):
         }
         space = json2space(json_search_space)
         random_state = np.random.RandomState()
-        is_rand = dict()
-        for item in space:
-            is_rand[item] = True
+        is_rand = {item: True for item in space}
         search_space_instance = json2parameter(json_search_space, is_rand, random_state)
         self.assertIn(search_space_instance["optimizer"]["_index"], range(2))
         self.assertIn(search_space_instance["optimizer"]["_value"], ["Adam", "SGD"])

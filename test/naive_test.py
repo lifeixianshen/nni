@@ -35,10 +35,7 @@ def naive_test():
     to_remove = list(map(lambda file: osp.join('naive_test', file), to_remove))
     remove_files(to_remove)
 
-    if sys.platform == 'win32':
-        config_file = 'local_win32.yml'
-    else:
-        config_file = 'local.yml'
+    config_file = 'local_win32.yml' if sys.platform == 'win32' else 'local.yml'
     proc = subprocess.run(['nnictl', 'create', '--config', osp.join('naive_test' , config_file)])
     assert proc.returncode == 0, '`nnictl create` failed with code %d' % proc.returncode
 
@@ -103,13 +100,17 @@ def stop_experiment_test():
     proc = subprocess.run(['nnictl', 'stop', experiment_id])
     assert proc.returncode == 0, '`nnictl stop %s` failed with code %d' % (experiment_id, proc.returncode)
     snooze()
-    assert not detect_port(8080), '`nnictl stop %s` failed to stop experiments' % experiment_id
+    assert not detect_port(
+        8080
+    ), f'`nnictl stop {experiment_id}` failed to stop experiments'
 
     # test cmd `nnictl stop --port`
     proc = subprocess.run(['nnictl', 'stop', '--port', '8990'])
     assert proc.returncode == 0, '`nnictl stop %s` failed with code %d' % (experiment_id, proc.returncode)
     snooze()
-    assert not detect_port(8990), '`nnictl stop %s` failed to stop experiments' % experiment_id
+    assert not detect_port(
+        8990
+    ), f'`nnictl stop {experiment_id}` failed to stop experiments'
 
     # test cmd `nnictl stop --all`
     proc = subprocess.run(['nnictl', 'stop', '--all'])
@@ -125,9 +126,9 @@ if __name__ == '__main__':
         naive_test()
         stop_experiment_test()
         # TODO: check the output of rest server
-        print(GREEN + 'PASS' + CLEAR)
+        print(f'{GREEN}PASS{CLEAR}')
     except Exception as error:
-        print(RED + 'FAIL' + CLEAR)
+        print(f'{RED}FAIL{CLEAR}')
         print('%r' % error)
         traceback.print_exc()
         sys.exit(1)

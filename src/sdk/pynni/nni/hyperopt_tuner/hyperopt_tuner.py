@@ -48,7 +48,7 @@ def json2space(in_x, name=NodeType.ROOT):
     if isinstance(in_x, dict):
         if NodeType.TYPE in in_x.keys():
             _type = in_x[NodeType.TYPE]
-            name = name + '-' + _type
+            name = f'{name}-{_type}'
             _value = json2space(in_x[NodeType.VALUE], name=name)
             if _type == 'choice':
                 out_y = hp.hp.choice(name, _value)
@@ -59,11 +59,12 @@ def json2space(in_x, name=NodeType.ROOT):
                     _value[:2] = np.log(_value[:2])
                 out_y = getattr(hp.hp, _type)(name, *_value)
         else:
-            out_y = dict()
-            for key in in_x.keys():
-                out_y[key] = json2space(in_x[key], name + '[%s]' % str(key))
+            out_y = {
+                key: json2space(in_x[key], f'{name}[{str(key)}]')
+                for key in in_x.keys()
+            }
     elif isinstance(in_x, list):
-        out_y = list()
+        out_y = []
         for i, x_i in enumerate(in_x):
             if isinstance(x_i, dict):
                 if NodeType.NAME not in x_i.keys():
@@ -82,7 +83,7 @@ def json2parameter(in_x, parameter, name=NodeType.ROOT):
     if isinstance(in_x, dict):
         if NodeType.TYPE in in_x.keys():
             _type = in_x[NodeType.TYPE]
-            name = name + '-' + _type
+            name = f'{name}-{_type}'
             if _type == 'choice':
                 _index = parameter[name]
                 out_y = {
@@ -93,20 +94,21 @@ def json2parameter(in_x, parameter, name=NodeType.ROOT):
                                    parameter,
                                    name=name + '[%d]' % _index)
                 }
+            elif _type in ['quniform', 'qloguniform']:
+                out_y = np.clip(parameter[name], in_x[NodeType.VALUE][0], in_x[NodeType.VALUE][1])
+            elif _type == 'randint':
+                out_y = parameter[name] + in_x[NodeType.VALUE][0]
             else:
-                if _type in ['quniform', 'qloguniform']:
-                    out_y = np.clip(parameter[name], in_x[NodeType.VALUE][0], in_x[NodeType.VALUE][1])
-                elif _type == 'randint':
-                    out_y = parameter[name] + in_x[NodeType.VALUE][0]
-                else:
-                    out_y = parameter[name]
+                out_y = parameter[name]
         else:
-            out_y = dict()
-            for key in in_x.keys():
-                out_y[key] = json2parameter(in_x[key], parameter,
-                                            name + '[%s]' % str(key))
+            out_y = {
+                key: json2parameter(
+                    in_x[key], parameter, f'{name}[{str(key)}]'
+                )
+                for key in in_x.keys()
+            }
     elif isinstance(in_x, list):
-        out_y = list()
+        out_y = []
         for i, x_i in enumerate(in_x):
             if isinstance(x_i, dict):
                 if NodeType.NAME not in x_i.keys():
@@ -121,7 +123,7 @@ def json2vals(in_x, vals, out_y, name=NodeType.ROOT):
     if isinstance(in_x, dict):
         if NodeType.TYPE in in_x.keys():
             _type = in_x[NodeType.TYPE]
-            name = name + '-' + _type
+            name = f'{name}-{_type}'
 
             try:
                 out_y[name] = vals[NodeType.INDEX]
@@ -137,8 +139,7 @@ def json2vals(in_x, vals, out_y, name=NodeType.ROOT):
                           name=name + '[%d]' % _index)
         else:
             for key in in_x.keys():
-                json2vals(in_x[key], vals[key], out_y,
-                          name + '[%s]' % str(key))
+                json2vals(in_x[key], vals[key], out_y, f'{name}[{str(key)}]')
     elif isinstance(in_x, list):
         for i, temp in enumerate(in_x):
             # nested json
@@ -162,35 +163,31 @@ def _add_index(in_x, parameter):
         {'dropout_rate': 0.8, 'conv_size': {'_index': 1, '_value': 3}, 'hidden_size': {'_index': 1, '_value': 512}}
     """
     if NodeType.TYPE not in in_x: # if at the top level
-        out_y = dict()
-        for key, value in parameter.items():
-            out_y[key] = _add_index(in_x[key], value)
-        return out_y
+        return {key: _add_index(in_x[key], value) for key, value in parameter.items()}
     elif isinstance(in_x, dict):
         value_type = in_x[NodeType.TYPE]
+        if value_type != "choice":
+            return parameter
+        choice_name = parameter[0] if isinstance(parameter,
+                                                 list) else parameter
         value_format = in_x[NodeType.VALUE]
-        if value_type == "choice":
-            choice_name = parameter[0] if isinstance(parameter,
-                                                     list) else parameter
-            for pos, item in enumerate(
+        for pos, item in enumerate(
                     value_format):  # here value_format is a list
-                if isinstance(
+            if isinstance(
                         item,
                         list):  # this format is ["choice_key", format_dict]
-                    choice_key = item[0]
+                choice_key = item[0]
+                if choice_key == choice_name:
                     choice_value_format = item[1]
-                    if choice_key == choice_name:
-                        return {
-                            NodeType.INDEX: pos,
-                            NodeType.VALUE: [
-                                choice_name,
-                                _add_index(choice_value_format, parameter[1])
-                            ]
-                        }
-                elif choice_name == item:
-                    return {NodeType.INDEX: pos, NodeType.VALUE: item}
-        else:
-            return parameter
+                    return {
+                        NodeType.INDEX: pos,
+                        NodeType.VALUE: [
+                            choice_name,
+                            _add_index(choice_value_format, parameter[1])
+                        ]
+                    }
+            elif choice_name == item:
+                return {NodeType.INDEX: pos, NodeType.VALUE: item}
     return None  # note: this is not written by original author, feel free to modify if you think it's incorrect
 
 
@@ -292,8 +289,7 @@ class HyperoptTuner(Tuner):
         if self.parallel:
             self.running_data.append(parameter_id)
 
-        params = split_index(total_params)
-        return params
+        return split_index(total_params)
 
     def receive_trial_result(self, parameter_id, parameters, value, **kwargs):
         """
@@ -329,19 +325,15 @@ class HyperoptTuner(Tuner):
 
                 # update the reward of optimal_y
                 if self.optimal_y is None:
-                    if self.constant_liar_type == 'mean':
-                        self.optimal_y = [reward, 1]
-                    else:
-                        self.optimal_y = reward
-                else:
-                    if self.constant_liar_type == 'mean':
-                        _sum = self.optimal_y[0] + reward
-                        _number = self.optimal_y[1] + 1
-                        self.optimal_y = [_sum, _number]
-                    elif self.constant_liar_type == 'min':
-                        self.optimal_y = min(self.optimal_y, reward)
-                    elif self.constant_liar_type == 'max':
-                        self.optimal_y = max(self.optimal_y, reward)
+                    self.optimal_y = [reward, 1] if self.constant_liar_type == 'mean' else reward
+                elif self.constant_liar_type == 'max':
+                    self.optimal_y = max(self.optimal_y, reward)
+                elif self.constant_liar_type == 'mean':
+                    _sum = self.optimal_y[0] + reward
+                    _number = self.optimal_y[1] + 1
+                    self.optimal_y = [_sum, _number]
+                elif self.constant_liar_type == 'min':
+                    self.optimal_y = min(self.optimal_y, reward)
                 logger.debug("Update optimal_y with reward, optimal_y = %s", self.optimal_y)
         else:
             rval = self.rval
@@ -360,9 +352,9 @@ class HyperoptTuner(Tuner):
         rval_miscs = [dict(tid=new_id, cmd=domain.cmd, workdir=domain.workdir)]
 
         vals = params
-        idxs = dict()
+        idxs = {}
 
-        out_y = dict()
+        out_y = {}
         json2vals(self.json, vals, out_y)
         vals = out_y
         for key in domain.params:
@@ -462,16 +454,14 @@ class HyperoptTuner(Tuner):
             new_trials = algorithm(new_ids, rval.domain, trials, random_state)
         rval.trials.refresh()
         vals = new_trials[0]['misc']['vals']
-        parameter = dict()
+        parameter = {}
         for key in vals:
             try:
                 parameter[key] = vals[key][0].item()
             except (KeyError, IndexError):
                 parameter[key] = None
 
-        # remove '_index' from json2parameter and save params-id
-        total_params = json2parameter(self.json, parameter)
-        return total_params
+        return json2parameter(self.json, parameter)
 
     def import_data(self, data):
         """

@@ -37,16 +37,20 @@ def parse_annotation_mutable_layers(code, lineno, nas_mode):
     assert type(module.body[0]) is ast.Expr, 'Annotation is not expression'
     call = module.body[0].value
     nodes = []
-    mutable_id = 'mutable_block_' + str(lineno)
-    mutable_layer_cnt = 0
-    for arg in call.args:
+    mutable_id = f'mutable_block_{str(lineno)}'
+    for mutable_layer_cnt, arg in enumerate(call.args):
         fields = {'layer_choice': False,
                   'fixed_inputs': False,
                   'optional_inputs': False,
                   'optional_input_size': False,
                   'layer_output': False}
         for k, value in zip(arg.keys, arg.values):
-            if k.id == 'layer_choice':
+            if k.id == 'fixed_inputs':
+                assert not fields['fixed_inputs'], 'Duplicated field: fixed_inputs'
+                assert type(value) is ast.List, 'Value of fixed_inputs should be a list'
+                fixed_inputs = value
+                fields['fixed_inputs'] = True
+            elif k.id == 'layer_choice':
                 assert not fields['layer_choice'], 'Duplicated field: layer_choice'
                 assert type(value) is ast.List, 'Value of layer_choice should be a list'
                 call_funcs_keys = []
@@ -67,35 +71,29 @@ def parse_annotation_mutable_layers(code, lineno, nas_mode):
                 call_funcs = ast.Dict(keys=call_funcs_keys, values=call_funcs_values)
                 call_kwargs = ast.Dict(keys=call_funcs_keys, values=call_kwargs_values)
                 fields['layer_choice'] = True
-            elif k.id == 'fixed_inputs':
-                assert not fields['fixed_inputs'], 'Duplicated field: fixed_inputs'
-                assert type(value) is ast.List, 'Value of fixed_inputs should be a list'
-                fixed_inputs = value
-                fields['fixed_inputs'] = True
-            elif k.id == 'optional_inputs':
-                assert not fields['optional_inputs'], 'Duplicated field: optional_inputs'
-                assert type(value) is ast.List, 'Value of optional_inputs should be a list'
-                var_names = [ast.Str(s=astor.to_source(var).strip()) for var in value.elts]
-                optional_inputs = ast.Dict(keys=var_names, values=value.elts)
-                fields['optional_inputs'] = True
+            elif k.id == 'layer_output':
+                assert not fields['layer_output'], 'Duplicated field: layer_output'
+                assert type(value) is ast.Name, 'Value of layer_output should be ast.Name type'
+                layer_output = value
+                fields['layer_output'] = True
             elif k.id == 'optional_input_size':
                 assert not fields['optional_input_size'], 'Duplicated field: optional_input_size'
                 assert type(value) is ast.Num or type(value) is ast.List, \
                     'Value of optional_input_size should be a number or list'
                 optional_input_size = value
                 fields['optional_input_size'] = True
-            elif k.id == 'layer_output':
-                assert not fields['layer_output'], 'Duplicated field: layer_output'
-                assert type(value) is ast.Name, 'Value of layer_output should be ast.Name type'
-                layer_output = value
-                fields['layer_output'] = True
+            elif k.id == 'optional_inputs':
+                assert not fields['optional_inputs'], 'Duplicated field: optional_inputs'
+                assert type(value) is ast.List, 'Value of optional_inputs should be a list'
+                var_names = [ast.Str(s=astor.to_source(var).strip()) for var in value.elts]
+                optional_inputs = ast.Dict(keys=var_names, values=value.elts)
+                fields['optional_inputs'] = True
             else:
                 raise AssertionError('Unexpected field in mutable layer')
         # make call for this mutable layer
         assert fields['layer_choice'], 'layer_choice must exist'
         assert fields['layer_output'], 'layer_output must exist'
-        mutable_layer_id = 'mutable_layer_' + str(mutable_layer_cnt)
-        mutable_layer_cnt += 1
+        mutable_layer_id = f'mutable_layer_{str(mutable_layer_cnt)}'
         target_call_attr = ast.Attribute(value=ast.Name(id='nni', ctx=ast.Load()), attr='mutable_layer', ctx=ast.Load())
         target_call_args = [ast.Str(s=mutable_id),
                             ast.Str(s=mutable_layer_id),
@@ -196,7 +194,7 @@ def convert_args_to_dict(call, with_lambda=False):
     """Convert all args to a dict such that every key and value in the dict is the same as the value of the arg.
     Return the AST Call node with only one arg that is the dictionary
     """
-    keys, values = list(), list()
+    keys, values = [], []
     for arg in call.args:
         if type(arg) in [ast.Str, ast.Num]:
             arg_value = arg
@@ -275,9 +273,7 @@ class FuncReplacer(ast.NodeTransformer):
         self.target = target
 
     def visit_Call(self, node):  # pylint: disable=invalid-name
-        if ast.dump(node, False) in self.funcs:
-            return self.target
-        return node
+        return self.target if ast.dump(node, False) in self.funcs else node
 
 
 class Transformer(ast.NodeTransformer):
@@ -328,16 +324,14 @@ class Transformer(ast.NodeTransformer):
             return expr
 
         if string.startswith('@nni.report_intermediate_result') \
-                or string.startswith('@nni.report_final_result') \
-                or string.startswith('@nni.get_next_parameter'):
+                    or string.startswith('@nni.report_final_result') \
+                    or string.startswith('@nni.get_next_parameter'):
             return parse_annotation(string[1:])  # expand annotation string to code
 
         if string.startswith('@nni.mutable_layers'):
-            nodes = parse_annotation_mutable_layers(string[1:], node.lineno, self.nas_mode)
-            return nodes
-
+            return parse_annotation_mutable_layers(string[1:], node.lineno, self.nas_mode)
         if string.startswith('@nni.variable') \
-                or string.startswith('@nni.function_choice'):
+                    or string.startswith('@nni.function_choice'):
             self.stack[-1] = string[1:]  # mark that the next expression is annotated
             return None
 

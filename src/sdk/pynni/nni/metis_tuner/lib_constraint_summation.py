@@ -35,8 +35,8 @@ def check_feasibility(x_bounds, lowerbound, upperbound):
     '''
     # x_bounds should be sorted, so even for "discrete_int" type,
     # the smallest and the largest number should the first and the last element
-    x_bounds_lowerbound = sum([x_bound[0] for x_bound in x_bounds])
-    x_bounds_upperbound = sum([x_bound[-1] for x_bound in x_bounds])
+    x_bounds_lowerbound = sum(x_bound[0] for x_bound in x_bounds)
+    x_bounds_upperbound = sum(x_bound[-1] for x_bound in x_bounds)
 
     # return ((x_bounds_lowerbound <= lowerbound) and (x_bounds_upperbound >= lowerbound)) or \
     #        ((x_bounds_lowerbound <= upperbound) and (x_bounds_upperbound >= upperbound))
@@ -59,7 +59,7 @@ def rand(x_bounds, x_types, lowerbound, upperbound, max_retries=100):
         for i, _ in enumerate(x_bounds):
             if x_types[i] == "discrete_int":
                 x_idx_sorted.append([i, len(x_bounds[i])])
-            elif (x_types[i] == "range_int") or (x_types[i] == "range_continuous"):
+            elif x_types[i] in ["range_int", "range_continuous"]:
                 x_idx_sorted.append(
                     [i, math.floor(x_bounds[i][1] - x_bounds[i][0])])
         x_idx_sorted = sorted(x_idx_sorted, key=itemgetter(1))
@@ -76,25 +76,20 @@ def rand(x_bounds, x_types, lowerbound, upperbound, max_retries=100):
                 if i < (len(x_idx_sorted) - 1):
                     if x_bounds[x_idx][0] <= budget_max:
                         if x_types[x_idx] == "discrete_int":
-                            # Note the valid integer
-                            temp = []
-                            for j in x_bounds[x_idx]:
-                                if j <= budget_max:
-                                    temp.append(j)
-                            # Randomly pick a number from the integer array
-                            if temp:
+                            if temp := [
+                                j for j in x_bounds[x_idx] if j <= budget_max
+                            ]:
                                 outputs[x_idx] = temp[random.randint(
                                     0, len(temp) - 1)]
 
-                        elif (x_types[x_idx] == "range_int") or \
-                                (x_types[x_idx] == "range_continuous"):
+                        elif x_types[x_idx] in ["range_int", "range_continuous"]:
                             outputs[x_idx] = random.randint(
                                 x_bounds[x_idx][0], min(x_bounds[x_idx][-1], budget_max))
 
                 else:
                     # The last x that we need to assign a random number
                     randint_lowerbound = lowerbound - budget_allocated
-                    randint_lowerbound = 0 if randint_lowerbound < 0 else randint_lowerbound
+                    randint_lowerbound = max(randint_lowerbound, 0)
 
                     # This check:
                     # is our smallest possible value going to overflow the available budget space,
@@ -103,17 +98,14 @@ def rand(x_bounds, x_types, lowerbound, upperbound, max_retries=100):
                     if (x_bounds[x_idx][0] <= budget_max) and \
                             (x_bounds[x_idx][-1] >= randint_lowerbound):
                         if x_types[x_idx] == "discrete_int":
-                            temp = []
-                            for j in x_bounds[x_idx]:
-                                # if (j <= budget_max) and (j >=
-                                # randint_lowerbound):
-                                if randint_lowerbound <= j <= budget_max:
-                                    temp.append(j)
-                            if temp:
+                            if temp := [
+                                j
+                                for j in x_bounds[x_idx]
+                                if randint_lowerbound <= j <= budget_max
+                            ]:
                                 outputs[x_idx] = temp[random.randint(
                                     0, len(temp) - 1)]
-                        elif (x_types[x_idx] == "range_int") or \
-                                (x_types[x_idx] == "range_continuous"):
+                        elif x_types[x_idx] in ["range_int", "range_continuous"]:
                             outputs[x_idx] = random.randint(
                                 randint_lowerbound, min(
                                     x_bounds[x_idx][1], budget_max))

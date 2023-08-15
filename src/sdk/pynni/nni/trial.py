@@ -57,9 +57,7 @@ def get_next_parameter():
     """
     global _params
     _params = platform.get_next_parameter()
-    if _params is None:
-        return None
-    return _params['parameters']
+    return None if _params is None else _params['parameters']
 
 def get_current_parameter(tag=None):
     """
@@ -74,9 +72,7 @@ def get_current_parameter(tag=None):
     global _params
     if _params is None:
         return None
-    if tag is None:
-        return _params['parameters']
-    return _params['parameters'][tag]
+    return _params['parameters'] if tag is None else _params['parameters'][tag]
 
 def get_experiment_id():
     """

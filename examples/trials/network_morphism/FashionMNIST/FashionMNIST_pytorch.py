@@ -77,8 +77,7 @@ def build_graph_from_json(ir_model_json):
     """
     graph = json_to_graph(ir_model_json)
     logging.debug(graph.operation_history)
-    model = graph.produce_torch_model()
-    return model
+    return graph.produce_torch_model()
 
 
 def parse_rev_args(receive_msg):

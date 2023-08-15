@@ -61,12 +61,12 @@ def attribute_difference(att_diff):
     ''' The attribute distance.
     '''
 
-    ret = 0
-    for a_value, b_value in att_diff:
-        if max(a_value, b_value) == 0:
-            ret += 0
-        else:
-            ret += abs(a_value - b_value) * 1.0 / max(a_value, b_value)
+    ret = sum(
+        0
+        if max(a_value, b_value) == 0
+        else abs(a_value - b_value) * 1.0 / max(a_value, b_value)
+        for a_value, b_value in att_diff
+    )
     return ret * 1.0 / len(att_diff)
 
 
@@ -301,7 +301,7 @@ def bourgain_embedding_matrix(distance_matrix):
         for t in range(t):
             s = np.random.choice(r, 2 ** i)
             for j in r:
-                d = min([distance_matrix[j][s] for s in s])
+                d = min(distance_matrix[j][s] for s in s)
                 counter += len(s)
                 if i == 0 and t == 0:
                     distort_elements.append([d])
@@ -413,16 +413,15 @@ class BayesianOptimizer:
         return mean - self.beta * std
 
     def _get_init_opt_acq_value(self):
-        if self.optimizemode is OptimizeMode.Maximize:
-            return -np.inf
-        return np.inf
+        return -np.inf if self.optimizemode is OptimizeMode.Maximize else np.inf
 
     def _accept_new_acq_value(self, opt_acq, temp_acq_value):
         if temp_acq_value > opt_acq and self.optimizemode is OptimizeMode.Maximize:
             return True
-        if temp_acq_value < opt_acq and not self.optimizemode is OptimizeMode.Maximize:
-            return True
-        return False
+        return (
+            temp_acq_value < opt_acq
+            and self.optimizemode is not OptimizeMode.Maximize
+        )
 
     def add_child(self, father_id, model_id):
         ''' add child to the search tree
@@ -459,10 +458,10 @@ class ReverseElem(Elem):
 
 def contain(descriptors, target_descriptor):
     """Check if the target descriptor is in the descriptors."""
-    for descriptor in descriptors:
-        if edit_distance(descriptor, target_descriptor) < 1e-5:
-            return True
-    return False
+    return any(
+        edit_distance(descriptor, target_descriptor) < 1e-5
+        for descriptor in descriptors
+    )
 
 
 class SearchTree:
@@ -492,8 +491,5 @@ class SearchTree:
         """ A recursive function to return the content of the tree in a dict."""
         if u is None:
             return self.get_dict(self.root)
-        children = []
-        for v in self.adj_list[u]:
-            children.append(self.get_dict(v))
-        ret = {"name": u, "children": children}
-        return ret
+        children = [self.get_dict(v) for v in self.adj_list[u]]
+        return {"name": u, "children": children}

@@ -69,11 +69,13 @@ class MnistNetwork(object):
             h_pool2 = max_pool(h_conv2, self.pool_size)
         last_dim = int(input_dim / (self.pool_size * self.pool_size))
         with tf.name_scope('fc1'):
-            W_fc1 = weight_variable([last_dim * last_dim * self.
-                channel_2_num, self.hidden_size])
+            W_fc1 = weight_variable(
+                [(last_dim**2 * self.channel_2_num), self.hidden_size]
+            )
             b_fc1 = bias_variable([self.hidden_size])
-        h_pool2_flat = tf.reshape(h_pool2, [-1, last_dim * last_dim * self.
-            channel_2_num])
+        h_pool2_flat = tf.reshape(
+            h_pool2, [-1, (last_dim**2 * self.channel_2_num)]
+        )
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
         with tf.name_scope('dropout'):
             h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
@@ -132,7 +134,7 @@ def main():
     mnist_network.build_network()
     logger.debug('Mnist build network done.')
     graph_location = tempfile.mkdtemp()
-    logger.debug('Saving graph to: %s' % graph_location)
+    logger.debug(f'Saving graph to: {graph_location}')
     train_writer = tf.summary.FileWriter(graph_location)
     train_writer.add_graph(tf.get_default_graph())
     test_acc = 0.0
@@ -159,11 +161,18 @@ def main():
 
 
 def generate_default_params():
-    params = {'data_dir': '/tmp/tensorflow/mnist/input_data',
-        'dropout_rate': 0.5, 'channel_1_num': 32, 'channel_2_num': 64,
-        'conv_size': 5, 'pool_size': 2, 'hidden_size': 1024, 'batch_size':
-        50, 'batch_num': 200, 'learning_rate': 0.0001}
-    return params
+    return {
+        'data_dir': '/tmp/tensorflow/mnist/input_data',
+        'dropout_rate': 0.5,
+        'channel_1_num': 32,
+        'channel_2_num': 64,
+        'conv_size': 5,
+        'pool_size': 2,
+        'hidden_size': 1024,
+        'batch_size': 50,
+        'batch_num': 200,
+        'learning_rate': 0.0001,
+    }
 
 
 if __name__ == '__main__':

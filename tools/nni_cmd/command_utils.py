@@ -19,9 +19,9 @@ def check_output_command(file_path, head=None, tail=None):
         else:
             cmds = ['cat', file_path]
             if head:
-                cmds = ['head', '-' + str(head), file_path]
+                cmds = ['head', f'-{str(head)}', file_path]
             elif tail:
-                cmds = ['tail', '-' + str(tail), file_path]
+                cmds = ['tail', f'-{str(tail)}', file_path]
             return check_output(cmds, shell=False).decode('utf-8')
     else:
         print_error('{0} does not exist!'.format(file_path))
